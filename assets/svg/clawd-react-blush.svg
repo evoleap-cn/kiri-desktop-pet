@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs><style>
+    .body { transform-origin: 7.5px 13px; animation: blush-body 2.6s 1 ease-in-out forwards; }
+    .cheek { animation: blush-pulse 2.6s 1 ease-in-out forwards; }
+    .spark { opacity: 0; animation: blush-spark 2.6s 1 ease-out forwards; }
+    @keyframes blush-body { 0%,100% { transform: translate(0,0) scale(1); } 28%,62% { transform: translate(0,0.8px) scale(0.97); } }
+    @keyframes blush-pulse { 0%,100% { opacity: 0.2; } 24%,70% { opacity: 0.86; } }
+    @keyframes blush-spark { 0%,20% { opacity: 0; transform: translate(0, 0) scale(0.5); } 40%,70% { opacity: 1; transform: translate(0, -1.4px) scale(1); } 100% { opacity: 0; transform: translate(0, -2px) scale(1.1); } }
+  </style></defs>
+  <rect x="2.2" y="15" width="10.8" height="1" fill="#000" opacity="0.34"/>
+  <g class="body">
+    <g fill="#DE886D"><rect x="3" y="12" width="1" height="3"/><rect x="5" y="12" width="1" height="3"/><rect x="9" y="12" width="1" height="3"/><rect x="11" y="12" width="1" height="3"/><rect x="2" y="6" width="11" height="7"/><rect x="1.2" y="9.2" width="1.9" height="1.7"/><rect x="11.9" y="9.2" width="1.9" height="1.7"/></g>
+    <rect x="4" y="8.1" width="1.1" height="1.2" rx="0.55" fill="#1A1A1A"/>
+    <rect x="9.9" y="8.1" width="1.1" height="1.2" rx="0.55" fill="#1A1A1A"/>
+    <rect x="5.8" y="9.5" width="2.4" height="0.55" rx="0.26" fill="#8F4A39" opacity="0.7"/>
+    <circle class="cheek" cx="3.9" cy="9.7" r="1.1" fill="#F5A3BA"/>
+    <circle class="cheek" cx="11.1" cy="9.7" r="1.1" fill="#F5A3BA"/>
+  </g>
+  <g class="spark" fill="#FFF0F5"><circle cx="0.8" cy="6.2" r="0.75"/><circle cx="14.5" cy="5.6" r="0.55"/></g>
+</svg>

@@ -1,0 +1,37 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .breathe-anim { transform-origin: 7.5px 13px; animation: breathe 3.6s infinite ease-in-out; }
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      .halo { transform-origin: 7.5px 4.2px; animation: halo-pulse 2.8s infinite ease-in-out; }
+      @keyframes halo-pulse {
+        0%, 100% { transform: scale(1); opacity: 0.7; }
+        50% { transform: scale(1.08); opacity: 1; }
+      }
+          </style>
+        </defs>
+        <rect x="3" y="15" width="9.5" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+  <g class="halo"><rect x="4.6" y="3.6" width="5.8" height="0.8" fill="#F4D98B" rx="0.4" opacity="0.85"/></g>
+        <g fill="#DE886D">
+  <rect x="3" y="12.4" width="3" height="1.4" fill="#DE886D"/>
+  <rect x="9" y="12.4" width="3" height="1.4" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="breathe-anim">
+            <rect x="2.2" y="6.6" width="10.6" height="6.0" fill="#DE886D"/>
+                  <rect x="1.2" y="9.7" width="2.4" height="1.2" fill="#DE886D"/>
+                  <rect x="11.4" y="9.7" width="2.4" height="1.2" fill="#DE886D"/>
+                  <g id="eyes-js" fill="#1A1A1A">
+              <rect x="4.0" y="8.5" width="1.2" height="0.6" fill="#1A1A1A"/>
+              <rect x="9.7" y="8.5" width="1.2" height="0.6" fill="#1A1A1A"/>
+            </g>
+          </g>
+        </g>
+</svg>

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .belly-breathe {
+        transform-origin: 7.5px 12px;
+        animation: belly 4s infinite ease-in-out;
+      }
+
+      .glasses-shine {
+        animation: shine 4s infinite ease-in-out;
+        opacity: 0;
+      }
+
+      .umbrella {
+        animation: umbrella 5s infinite ease-in-out;
+      }
+
+      @keyframes belly {
+        0%, 100% { transform: scaleY(1) translate(0, 0); }
+        50% { transform: scaleY(1.03) translate(0, 0.3px); }
+      }
+
+      @keyframes shine {
+        0%, 40%, 100% { opacity: 0; }
+        50% { opacity: 0.6; }
+        60% { opacity: 0; }
+      }
+
+      @keyframes umbrella {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(1.2deg); }
+      }
+    </style>
+  </defs>
+
+  <g id="shadow-js">
+    <rect x="0" y="15" width="15" height="1" fill="#000000" opacity="0.35"/>
+  </g>
+
+  <g class="umbrella">
+    <rect x="16" y="5" width="0.7" height="10" fill="#8D6E63"/>
+    <path d="M13 6 Q16 2 19 6" fill="#F4A261"/>
+    <path d="M13 6 Q14 7 15 6 Q16 7 17 6 Q18 7 19 6" fill="#E76F51"/>
+  </g>
+
+  <rect x="-1" y="12" width="17" height="1" fill="#D8C3A5"/>
+  <rect x="0" y="11.5" width="4" height="1" fill="#4FC3F7" opacity="0.6"/>
+  <rect x="5" y="11.5" width="4" height="1" fill="#FFFFFF" opacity="0.45"/>
+  <rect x="10" y="11.5" width="4" height="1" fill="#4FC3F7" opacity="0.6"/>
+
+  <g id="body-js" transform="translate(1, -1) rotate(-15, 7.5, 11)">
+    <g class="belly-breathe">
+      <rect x="2" y="7" width="11" height="6" fill="#DE886D"/>
+      <rect x="12" y="10" width="4" height="1" fill="#DE886D"/>
+      <rect x="12" y="12" width="4" height="1" fill="#DE886D"/>
+      <rect x="-1" y="7" width="3" height="2" fill="#DE886D"/>
+      <rect x="7" y="9" width="2" height="2" fill="#DE886D" opacity="0.9"/>
+
+      <rect x="3" y="8" width="3" height="1.5" fill="#212121"/>
+      <rect x="7" y="8" width="3" height="1.5" fill="#212121"/>
+      <rect x="6" y="8.5" width="1" height="0.5" fill="#212121"/>
+      <rect class="glasses-shine" x="4" y="8" width="1" height="0.5" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      /* Gentle breathing while reading */
+      .breathe-anim {
+        transform-origin: 7.5px 13px;
+        animation: breathe 3.5s infinite ease-in-out;
+      }
+
+      /* Eyes scanning left-right across the book */
+      .eyes-read {
+        transform-origin: 7.5px 9px;
+        animation: eye-scan 6s infinite ease-in-out;
+      }
+
+      /* Occasional page turn with left arm */
+      .arm-l-read {
+        transform-origin: 2px 10px;
+        animation: page-turn 8s infinite ease-in-out;
+      }
+
+      /* Right arm holds book steady */
+      .arm-r-read {
+        transform-origin: 13px 10px;
+        animation: arm-hold 3.5s infinite ease-in-out;
+      }
+
+      /* Book slight tilt */
+      .book {
+        transform-origin: 7.5px 12px;
+        animation: book-tilt 8s infinite ease-in-out;
+      }
+
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      @keyframes eye-scan {
+        0%, 15% { transform: translate(1.5px, 1.5px) scaleY(1); }
+        20%     { transform: translate(1.5px, 1.5px) scaleY(0.1); }
+        25%     { transform: translate(-1.5px, 1.5px) scaleY(1); }
+        45%, 55% { transform: translate(-1.5px, 1.5px) scaleY(1); }
+        60%     { transform: translate(-1.5px, 1.5px) scaleY(0.1); }
+        65%     { transform: translate(1.5px, 1.5px) scaleY(1); }
+        85%, 100% { transform: translate(1.5px, 1.5px) scaleY(1); }
+      }
+
+      @keyframes page-turn {
+        0%, 70% { transform: translate(2px, -2px) rotate(-15deg); }
+        75%     { transform: translate(3px, -4px) rotate(-30deg); }
+        80%     { transform: translate(2px, -3px) rotate(-20deg); }
+        85%     { transform: translate(2px, -2px) rotate(-15deg); }
+        100%    { transform: translate(2px, -2px) rotate(-15deg); }
+      }
+
+      @keyframes arm-hold {
+        0%, 100% { transform: translate(-1px, -1px) rotate(10deg); }
+        50%      { transform: translate(-1px, -0.5px) rotate(10deg); }
+      }
+
+      @keyframes book-tilt {
+        0%, 70%, 100% { transform: rotate(0deg); }
+        75%           { transform: rotate(-3deg); }
+        85%           { transform: rotate(0deg); }
+      }
+    </style>
+  </defs>
+
+  <!-- Ground Shadow -->
+  <rect x="3" y="15" width="9" height="1" fill="#000000" opacity="0.5"/>
+
+  <!-- Legs (sitting pose — shorter, wider stance) -->
+  <g fill="#DE886D">
+    <rect x="3" y="12" width="1" height="3"/>
+    <rect x="5" y="12" width="1" height="3"/>
+    <rect x="9" y="12" width="1" height="3"/>
+    <rect x="11" y="12" width="1" height="3"/>
+  </g>
+
+  <g class="breathe-anim">
+    <!-- Torso -->
+    <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+
+    <!-- Left arm (page turning) -->
+    <g class="arm-l-read">
+      <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+    </g>
+
+    <!-- Right arm (holding book) -->
+    <g class="arm-r-read">
+      <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+    </g>
+
+    <!-- Book -->
+    <g class="book">
+      <rect x="3" y="11" width="9" height="1" fill="#5C6BC0" opacity="0.9"/>
+      <rect x="4" y="10.5" width="3.5" height="1" fill="#FFFFFF" opacity="0.7"/>
+      <rect x="8" y="10.5" width="3.5" height="1" fill="#FFF9C4" opacity="0.7"/>
+      <!-- Spine -->
+      <rect x="7.25" y="10.3" width="0.5" height="1.2" fill="#3949AB"/>
+    </g>
+
+    <!-- Eyes (reading — looking down at book) -->
+    <g class="eyes-read" fill="#000000">
+      <rect x="4" y="8" width="1" height="2"/>
+      <rect x="10" y="8" width="1" height="2"/>
+    </g>
+  </g>
+</svg>

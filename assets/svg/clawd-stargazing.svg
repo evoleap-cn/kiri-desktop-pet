@@ -1,0 +1,53 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .breathe-anim { transform-origin: 7.5px 13px; animation: breathe 3.6s infinite ease-in-out; }
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      .scope { transform-origin: 14px 9px; animation: scope-tilt 4.2s infinite ease-in-out; }
+      .star { opacity: 0.35; animation: star-twinkle 2.4s infinite ease-in-out; }
+      .s2 { animation-delay: 0.5s; }
+      .s3 { animation-delay: 0.9s; }
+      @keyframes scope-tilt {
+        0%, 100% { transform: rotate(-6deg); }
+        50% { transform: rotate(-11deg) translate(0.4px, -0.3px); }
+      }
+      @keyframes star-twinkle {
+        0%, 100% { opacity: 0.2; transform: scale(0.9); }
+        50% { opacity: 0.9; transform: scale(1.1); }
+      }
+          </style>
+        </defs>
+        <rect x="2" y="15" width="11" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+        <g fill="#DE886D">
+  <rect x="3" y="12.3" width="1" height="2.8" fill="#DE886D"/>
+  <rect x="5" y="12.3" width="1" height="2.8" fill="#DE886D"/>
+  <rect x="9" y="12.3" width="1" height="2.8" fill="#DE886D"/>
+  <rect x="11" y="12.3" width="1" height="2.8" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="breathe-anim">
+            <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+            <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+            <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+            <g id="eyes-js" fill="#1A1A1A">
+              <rect x="4.2" y="7.8" width="1" height="2" fill="#1A1A1A"/>
+              <rect x="10.0" y="7.8" width="1" height="2" fill="#1A1A1A"/>
+            </g>
+          </g>
+        </g>
+  <g class="scope">
+  <rect x="14.2" y="7.2" width="4.2" height="1.6" fill="#90A4AE"/>
+  <rect x="15.6" y="8.5" width="0.5" height="4.2" fill="#78909C"/>
+  <rect x="17.2" y="8.5" width="0.5" height="4.2" fill="#78909C"/>
+</g>
+<g class="star"><circle cx="19.4" cy="2.4" r="0.5" fill="#FFF59D"/></g>
+<g class="star s2"><circle cx="16.8" cy="0.9" r="0.45" fill="#FFFDE7"/></g>
+<g class="star s3"><circle cx="21.0" cy="4.3" r="0.4" fill="#FFE082"/></g>
+</svg>

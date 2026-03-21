@@ -1,0 +1,61 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .breathe-anim { transform-origin: 7.5px 13px; animation: breathe 3.6s infinite ease-in-out; }
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      .needle-left { transform-origin: 5px 10px; animation: knit-left 1.6s infinite ease-in-out; }
+      .needle-right { transform-origin: 10px 10px; animation: knit-right 1.6s infinite ease-in-out; }
+      .yarn { animation: yarn-bounce 2.4s infinite ease-in-out; }
+      @keyframes knit-left {
+        0%, 100% { transform: rotate(-12deg); }
+        50% { transform: rotate(6deg) translate(0.4px, -0.2px); }
+      }
+      @keyframes knit-right {
+        0%, 100% { transform: rotate(12deg); }
+        50% { transform: rotate(-6deg) translate(-0.4px, -0.2px); }
+      }
+      @keyframes yarn-bounce {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(0.4px, -0.4px); }
+      }
+          </style>
+        </defs>
+        <rect x="3" y="15" width="9" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+        <g fill="#DE886D">
+  <rect x="3" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="5" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="9" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="11" y="12" width="1" height="3" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="breathe-anim">
+            <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+            <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+            <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+
+            <g class="needle-left">
+              <rect x="4.0" y="10.2" width="3.0" height="0.4" fill="#9FA8DA" transform="rotate(-20 5.5 10.4)"/>
+            </g>
+            <g class="needle-right">
+              <rect x="8.1" y="10.2" width="3.0" height="0.4" fill="#9FA8DA" transform="rotate(20 9.6 10.4)"/>
+            </g>
+            <rect x="5.6" y="10.6" width="4.0" height="1.4" fill="#F8BBD0"/>
+
+            <g id="eyes-js" fill="#1A1A1A">
+              <rect x="4" y="8.3" width="1" height="2" fill="#1A1A1A"/>
+              <rect x="10" y="8.3" width="1" height="2" fill="#1A1A1A"/>
+            </g>
+          </g>
+        </g>
+  <g class="yarn">
+  <circle cx="14.8" cy="13.2" r="1.4" fill="#F48FB1"/>
+  <path d="M13.8 12.4C14.7 11.8 15.9 12.1 16.2 13.1C16.4 13.9 15.9 14.9 14.8 15.0" fill="none" stroke="#FCE4EC" stroke-width="0.35" stroke-linecap="round"/>
+</g>
+</svg>

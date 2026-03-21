@@ -1,0 +1,58 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .breathe-anim { transform-origin: 7.5px 13px; animation: breathe 3.6s infinite ease-in-out; }
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      .can { transform-origin: 12px 9px; animation: pour 3.4s infinite ease-in-out; }
+      .drop { opacity: 0; animation: drip 1.7s infinite ease-in-out; }
+      .d2 { animation-delay: 0.3s; }
+      @keyframes pour {
+        0%, 100% { transform: rotate(0deg); }
+        40%, 70% { transform: rotate(10deg) translate(0.5px, -0.5px); }
+      }
+      @keyframes drip {
+        0%, 40% { opacity: 0; transform: translate(0, 0); }
+        50% { opacity: 0.75; }
+        100% { opacity: 0; transform: translate(0, 3px); }
+      }
+          </style>
+        </defs>
+        <rect x="2.5" y="15" width="11" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+        <g fill="#DE886D">
+  <rect x="3" y="11.2" width="1" height="3.8" fill="#DE886D"/>
+  <rect x="5" y="11.2" width="1" height="3.8" fill="#DE886D"/>
+  <rect x="9" y="11.2" width="1" height="3.8" fill="#DE886D"/>
+  <rect x="11" y="11.2" width="1" height="3.8" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="breathe-anim">
+            <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+            <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+            <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+
+            <g class="can">
+              <rect x="11.5" y="8.7" width="2.4" height="1.8" fill="#8EC7C1"/>
+              <rect x="13.7" y="9.0" width="1.4" height="0.5" fill="#8EC7C1"/>
+            </g>
+            <g class="drop"><rect x="14.9" y="10.1" width="0.4" height="1.0" fill="#A5D6A7"/></g>
+            <g class="drop d2"><rect x="14.3" y="10.4" width="0.4" height="0.9" fill="#A5D6A7"/></g>
+
+            <g id="eyes-js" fill="#1A1A1A">
+              <rect x="4" y="8.2" width="1" height="2" fill="#1A1A1A"/>
+              <rect x="10" y="8.2" width="1" height="2" fill="#1A1A1A"/>
+            </g>
+          </g>
+        </g>
+  <g>
+  <rect x="2.5" y="13.2" width="3.6" height="2.2" fill="#8D6E63"/>
+  <rect x="3.0" y="12.2" width="2.6" height="1.2" fill="#66BB6A"/>
+  <rect x="4.1" y="10.9" width="0.5" height="1.4" fill="#4CAF50"/>
+</g>
+</svg>

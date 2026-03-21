@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <clipPath id="screen-clip">
+      <rect x="10.5" y="7.5" width="7" height="5"/>
+    </clipPath>
+    <style>
+      .shadow-type {
+        transform-origin: 8px 15.5px;
+        animation: type-shadow 0.22s infinite ease-in-out;
+      }
+
+      .body-type {
+        transform-origin: 6px 15px;
+        animation: type-body 0.22s infinite ease-in-out;
+      }
+
+      .arm-l-type {
+        transform-origin: 2px 10px;
+        animation: type-left 0.18s infinite ease-in-out;
+      }
+
+      .arm-r-type {
+        transform-origin: 10px 10px;
+        animation: type-right 0.16s infinite ease-in-out;
+      }
+
+      .eyes-type {
+        transform-origin: 6px 8.5px;
+        animation: eyes-type 2.2s infinite steps(1, end);
+      }
+
+      .screen-flicker {
+        animation: screen-flicker 1.8s infinite ease-in-out;
+      }
+
+      .code-scroll {
+        animation: code-scroll 1.1s infinite steps(4, end);
+      }
+
+      .cursor-blink {
+        animation: cursor-blink 0.8s infinite steps(1, end);
+      }
+
+      .key-hit-l {
+        animation: key-hit-l 0.18s infinite steps(1, end);
+      }
+
+      .key-hit-r {
+        animation: key-hit-r 0.16s infinite steps(1, end);
+      }
+
+      @keyframes type-shadow {
+        0%, 100% { transform: scaleX(1); opacity: 0.45; }
+        50% { transform: scaleX(1.08); opacity: 0.58; }
+      }
+
+      @keyframes type-body {
+        0%, 100% { transform: translate(0, 0) rotate(1deg); }
+        50% { transform: translate(0.5px, 0.6px) rotate(2.5deg); }
+      }
+
+      @keyframes type-left {
+        0%, 100% { transform: translate(2.2px, 0.4px) rotate(-14deg); }
+        50% { transform: translate(3.2px, 1.4px) rotate(8deg); }
+      }
+
+      @keyframes type-right {
+        0%, 100% { transform: translate(0.9px, 0.4px) rotate(10deg); }
+        50% { transform: translate(1.8px, 1.4px) rotate(24deg); }
+      }
+
+      @keyframes eyes-type {
+        0%, 20% { transform: translate(1.5px, 0.5px) scaleY(1); }
+        21%, 24% { transform: translate(1.5px, 0.5px) scaleY(0.2); }
+        25%, 58% { transform: translate(1.8px, 1px) scaleY(1); }
+        59%, 62% { transform: translate(1.8px, 1px) scaleY(0.2); }
+        63%, 100% { transform: translate(1.2px, 0.4px) scaleY(1); }
+      }
+
+      @keyframes screen-flicker {
+        0%, 100% { opacity: 0.88; }
+        50% { opacity: 1; }
+      }
+
+      @keyframes code-scroll {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-2px); }
+      }
+
+      @keyframes cursor-blink {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+
+      @keyframes key-hit-l {
+        0%, 49% { opacity: 0.15; }
+        50%, 100% { opacity: 0.65; }
+      }
+
+      @keyframes key-hit-r {
+        0%, 49% { opacity: 0.65; }
+        50%, 100% { opacity: 0.15; }
+      }
+    </style>
+  </defs>
+
+  <rect class="shadow-type" x="1.5" y="15" width="15" height="1" fill="#000000" opacity="0.45"/>
+
+  <g id="laptop">
+    <rect x="9.5" y="13" width="10" height="1.2" fill="#546E7A"/>
+    <rect x="10" y="13.8" width="9" height="0.7" fill="#37474F" opacity="0.9"/>
+    <rect x="10" y="7" width="8" height="6.3" fill="#455A64"/>
+    <rect x="10.5" y="7.5" width="7" height="5" fill="#10212B"/>
+    <g class="screen-flicker" clip-path="url(#screen-clip)">
+      <g class="code-scroll">
+        <rect x="11" y="8.3" width="4.5" height="0.45" fill="#4FC3F7"/>
+        <rect x="11" y="9.2" width="5.7" height="0.45" fill="#81C784"/>
+        <rect x="12" y="10.1" width="3.2" height="0.45" fill="#FFB74D"/>
+        <rect x="11" y="11" width="5.2" height="0.45" fill="#CE93D8"/>
+        <rect x="16.1" y="10.9" width="0.5" height="0.7" fill="#E0F7FA" class="cursor-blink"/>
+      </g>
+    </g>
+    <rect x="11.2" y="13.1" width="1.3" height="0.45" fill="#E0F7FA" opacity="0.15" class="key-hit-l"/>
+    <rect x="14.2" y="13.1" width="1.3" height="0.45" fill="#E0F7FA" opacity="0.15" class="key-hit-r"/>
+  </g>
+
+  <g class="body-type">
+    <g fill="#DE886D">
+      <rect x="3" y="13" width="1" height="2"/>
+      <rect x="5" y="13" width="1" height="2"/>
+      <rect x="7.5" y="13" width="1" height="2"/>
+      <rect x="9.5" y="13" width="1" height="2"/>
+    </g>
+
+    <g fill="#DE886D">
+      <rect x="2" y="6" width="8.5" height="7"/>
+      <g class="arm-l-type">
+        <rect x="0" y="9" width="2" height="2"/>
+      </g>
+      <g class="arm-r-type">
+        <rect x="9" y="9" width="2" height="2"/>
+      </g>
+    </g>
+
+    <g class="eyes-type" fill="#000000">
+      <rect x="4" y="8" width="1" height="2"/>
+      <rect x="8" y="8" width="1" height="2"/>
+    </g>
+  </g>
+</svg>

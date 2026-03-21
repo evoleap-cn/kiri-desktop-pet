@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      /* Body bob synced with leg cycle */
+      .walk-bob {
+        transform-origin: 7.5px 13px;
+        animation: walk-bob 0.5s infinite ease-in-out;
+      }
+
+      /* Breathing layered on top */
+      .breathe-anim {
+        transform-origin: 7.5px 13px;
+        animation: breathe 3.2s infinite ease-in-out;
+      }
+
+      /* Eye blink */
+      .eyes-blink {
+        transform-origin: 7.5px 9px;
+        animation: eye-blink 4s infinite ease-in-out;
+      }
+
+      /* JS-controllable eye/body/shadow */
+      #eyes-js, #body-js, #shadow-js {
+        transition: transform 0.2s ease-out;
+      }
+      #shadow-js {
+        transform-origin: 7.5px 15px;
+      }
+
+      /* Leg animations from crabwalk */
+      .leg-1 { animation: step-1 0.5s infinite linear; transform-origin: top center; transform-box: fill-box; }
+      .leg-2 { animation: step-2 0.5s infinite linear; transform-origin: top center; transform-box: fill-box; }
+
+      /* Arm swing */
+      .arm-l-walk {
+        transform-origin: 1px 10px;
+        animation: arm-swing-l 0.5s infinite ease-in-out;
+      }
+      .arm-r-walk {
+        transform-origin: 14px 10px;
+        animation: arm-swing-r 0.5s infinite ease-in-out;
+      }
+
+      /* Shadow bob */
+      .shadow-walk {
+        transform-origin: 7.5px 15.5px;
+        animation: shadow-bob 0.5s infinite ease-in-out;
+      }
+
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      @keyframes walk-bob {
+        0%, 100% { transform: translateY(0); }
+        25% { transform: translateY(-1.5px); }
+        75% { transform: translateY(-1.5px); }
+      }
+
+      @keyframes eye-blink {
+        0%, 10%, 100% { transform: scaleY(1); }
+        5% { transform: scaleY(0.1); }
+      }
+
+      @keyframes step-1 {
+        0%, 100% { transform: rotate(0deg) scaleY(1); }
+        50% { transform: rotate(-20deg) scaleY(0.8); }
+      }
+      @keyframes step-2 {
+        0%, 100% { transform: rotate(-20deg) scaleY(0.8); }
+        50% { transform: rotate(0deg) scaleY(1); }
+      }
+
+      @keyframes arm-swing-l {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(15deg); }
+      }
+      @keyframes arm-swing-r {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(-15deg); }
+      }
+
+      @keyframes shadow-bob {
+        0%, 100% { transform: scaleX(1); opacity: 0.5; }
+        25%, 75% { transform: scaleX(0.95); opacity: 0.45; }
+      }
+    </style>
+  </defs>
+
+  <!-- Ground Shadow (JS-controlled) -->
+  <g id="shadow-js">
+    <rect class="shadow-walk" x="3" y="15" width="9" height="1" fill="#000000" opacity="0.5"/>
+  </g>
+
+  <!-- Walking Legs -->
+  <g id="legs" fill="#DE886D">
+    <rect class="leg-1" x="3" y="11" width="1" height="4"/>
+    <rect class="leg-2" x="5" y="11" width="1" height="4"/>
+    <rect class="leg-1" x="9" y="11" width="1" height="4"/>
+    <rect class="leg-2" x="11" y="11" width="1" height="4"/>
+  </g>
+
+  <!-- Upper Body (JS body-shift + walk bob + breathe) -->
+  <g id="body-js">
+    <g class="walk-bob">
+      <g class="breathe-anim">
+        <!-- Torso -->
+        <rect id="torso" x="2" y="6" width="11" height="7" fill="#DE886D"/>
+        <!-- Left Arm -->
+        <g class="arm-l-walk">
+          <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+        </g>
+        <!-- Right Arm -->
+        <g class="arm-r-walk">
+          <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+        </g>
+        <!-- Eyes: JS translate wrapper + CSS blink -->
+        <g id="eyes-js" fill="#000000">
+          <g class="eyes-blink">
+            <rect x="4" y="8" width="1" height="2"/>
+            <rect x="10" y="8" width="1" height="2"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

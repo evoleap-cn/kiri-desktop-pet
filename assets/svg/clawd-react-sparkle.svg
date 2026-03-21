@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs><style>
+    .body { transform-origin: 7.5px 13px; animation: lean 2.7s 1 ease-in-out forwards; }
+    .sparkle { opacity: 0; animation: sparkle 2.7s 1 ease-out forwards; }
+    .sparkle.two { animation-delay: 0.25s; }
+    @keyframes lean { 0%,100% { transform: translate(0,0) rotate(0deg); } 30%,62% { transform: translate(0.5px,-0.4px) rotate(-3deg); } }
+    @keyframes sparkle { 0%,18% { opacity: 0; transform: translate(0,0) scale(0.5); } 36%,68% { opacity: 1; transform: translate(0,-1.8px) scale(1); } 100% { opacity: 0; transform: translate(0,-3px) scale(1.1); } }
+  </style></defs>
+  <rect x="2.2" y="15" width="10.8" height="1" fill="#000" opacity="0.32"/>
+  <g class="sparkle" fill="#FFF5B2"><path d="M1.5 6.7L2.1 8L3.4 8.2L2.4 9.1L2.7 10.4L1.5 9.8L0.3 10.4L0.6 9.1L-0.4 8.2L0.9 8Z"/></g>
+  <g class="sparkle two" fill="#D7F9FF"><path d="M13.9 5.5L14.4 6.6L15.6 6.8L14.7 7.6L15 8.7L13.9 8.1L12.8 8.7L13 7.6L12.1 6.8L13.3 6.6Z"/></g>
+  <g class="body"><g fill="#DE886D"><rect x="3" y="12" width="1" height="3"/><rect x="5" y="12" width="1" height="3"/><rect x="9" y="12" width="1" height="3"/><rect x="11" y="12" width="1" height="3"/><rect x="2" y="6" width="11" height="7"/><rect x="1.1" y="9.1" width="2" height="1.9"/><rect x="12" y="9.1" width="2" height="1.9"/></g><path d="M4 8.8L4.8 7.1L5.6 8.8L7.3 9.4L5.6 10L4.8 11.7L4 10L2.3 9.4Z" fill="#FFF3A0"/><path d="M9.6 8.8L10.4 7.1L11.2 8.8L12.9 9.4L11.2 10L10.4 11.7L9.6 10L7.9 9.4Z" fill="#FFF3A0"/><rect x="5.5" y="10.1" width="3.1" height="0.65" rx="0.3" fill="#8F4A39" opacity="0.72"/></g>
+</svg>

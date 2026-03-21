@@ -1,0 +1,56 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .body-motion { transform-origin: 7.5px 13px; animation: sway 2.6s infinite ease-in-out; }
+      @keyframes sway {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(0, -0.6px) rotate(-2deg); }
+      }
+
+      .body-motion { transform-origin: 7.5px 13px; animation: sweep-lean 1.5s infinite ease-in-out; }
+      .broom { transform-origin: 13.6px 13px; animation: sweep-broom 1.5s infinite ease-in-out; }
+      .dust { opacity: 0; animation: sweep-dust 1.5s infinite ease-out; }
+      .d2 { animation-delay: 0.35s; }
+      @keyframes sweep-lean {
+        0%, 100% { transform: rotate(4deg) translate(0, 0); }
+        50% { transform: rotate(12deg) translate(1.2px, 0.6px); }
+      }
+      @keyframes sweep-broom {
+        0%, 100% { transform: rotate(10deg); }
+        50% { transform: rotate(26deg) translate(1.6px, -0.8px); }
+      }
+      @keyframes sweep-dust {
+        0%, 35% { opacity: 0; transform: translate(18px, 14px) scale(0.6); }
+        45% { opacity: 0.8; }
+        100% { opacity: 0; transform: translate(24px, 13px) scale(1); }
+      }
+          </style>
+        </defs>
+        <rect x="2.2" y="15.1" width="12.5" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+        <g fill="#DE886D">
+  <rect x="3" y="13" width="1" height="2.2" fill="#DE886D"/>
+  <rect x="5" y="13" width="1" height="2.2" fill="#DE886D"/>
+  <rect x="9" y="13" width="1" height="2.2" fill="#DE886D"/>
+  <rect x="11" y="13" width="1" height="2.2" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="body-motion">
+            <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+                  <rect x="1.2" y="9.6" width="2.0" height="1.4" fill="#DE886D"/>
+                  <rect x="12.8" y="8.8" width="2.0" height="2.0" fill="#DE886D"/>
+                  <g id="eyes-js" fill="#1A1A1A">
+              <rect x="5" y="8.1" width="1" height="2" fill="#1A1A1A"/>
+              <rect x="11" y="8.1" width="1" height="2" fill="#1A1A1A"/>
+            </g>
+          </g>
+        </g>
+  <g class="broom">
+  <rect x="13.5" y="4.0" width="0.8" height="10.0" fill="#8D6E63"/>
+  <rect x="12.0" y="14.0" width="4.0" height="1.8" fill="#FFC107"/>
+</g>
+<g class="dust"><rect x="0" y="0" width="1.4" height="1.4" fill="#B0BEC5"/></g>
+<g class="dust d2"><rect x="0" y="0" width="1.0" height="1.0" fill="#CFD8DC"/></g>
+</svg>

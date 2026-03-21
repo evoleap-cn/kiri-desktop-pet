@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .peek-body { transform-origin: -4px 11px; animation: peek 3.1s infinite ease-in-out; }
+      .peek-arm { transform-origin: 2px 11px; animation: paw 2.8s infinite ease-in-out; }
+      .blink { animation: blink 5.6s infinite steps(1, end); }
+      @keyframes peek { 0%,100% { transform: translate(0, 0); } 50% { transform: translate(0.6px, -0.3px); } }
+      @keyframes paw { 0%,100% { transform: translate(0,0); } 45% { transform: translate(0.4px, -0.4px); } }
+      @keyframes blink { 0%,12%,100% { transform: scaleY(1); } 13%,15% { transform: scaleY(0.16); } }
+    </style>
+  </defs>
+  <rect x="-15" y="-25" width="10" height="45" fill="#1C1B24" opacity="0.14"/>
+  <g id="body-js" class="peek-body">
+    <rect x="-8.8" y="6" width="12.8" height="8" rx="1.5" fill="#DE886D"/>
+    <rect class="peek-arm" x="-2.1" y="12.1" width="3.3" height="1.7" fill="#DE886D"/>
+    <rect x="-7.6" y="12.2" width="2.6" height="1.6" fill="#DE886D"/>
+    <g id="eyes-js" fill="#1B1B1B">
+      <g class="blink">
+        <rect x="-5.6" y="8.4" width="1.1" height="1.8" rx="0.2"/>
+        <rect x="-0.4" y="8.4" width="1.1" height="1.8" rx="0.2"/>
+      </g>
+    </g>
+    <rect x="-4.2" y="10.2" width="2.4" height="0.55" rx="0.25" fill="#8F4A39" opacity="0.72"/>
+    <circle cx="-6.7" cy="10.1" r="0.5" fill="#F4A7B9" opacity="0.56"/>
+    <circle cx="1.2" cy="10.1" r="0.5" fill="#F4A7B9" opacity="0.56"/>
+  </g>
+</svg>

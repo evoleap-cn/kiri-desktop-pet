@@ -1,0 +1,57 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .breathe-anim { transform-origin: 7.5px 13px; animation: breathe 3.6s infinite ease-in-out; }
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      .cup { transform-origin: 10.8px 10.8px; animation: tea-sip 4.8s infinite ease-in-out; }
+      .steam { opacity: 0; animation: tea-steam 2.6s infinite ease-out; }
+      .s2 { animation-delay: 0.5s; }
+      @keyframes tea-sip {
+        0%, 100% { transform: translate(0, 0); }
+        35%, 55% { transform: translate(-0.6px, -1.2px) rotate(-8deg); }
+      }
+      @keyframes tea-steam {
+        0% { transform: translate(0, 0); opacity: 0; }
+        25% { opacity: 0.6; }
+        100% { transform: translate(0, -2px); opacity: 0; }
+      }
+          </style>
+        </defs>
+        <rect x="3" y="15" width="9" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+        <g fill="#DE886D">
+  <rect x="3" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="5" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="9" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="11" y="12" width="1" height="3" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="breathe-anim">
+            <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+            <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+            <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+
+            <g class="cup">
+              <rect x="9.8" y="10.2" width="2" height="1.6" fill="#B87A4B"/>
+              <rect x="11.8" y="10.5" width="0.7" height="0.8" fill="#F4D98B"/>
+              <g class="steam" fill="#FFFFFF" opacity="0.6">
+                <rect x="10.2" y="8.2" width="0.4" height="1.2" fill="#FFFFFF"/>
+              </g>
+              <g class="steam s2" fill="#FFFFFF" opacity="0.6">
+                <rect x="11.0" y="8.4" width="0.4" height="1.1" fill="#FFFFFF"/>
+              </g>
+            </g>
+
+            <g id="eyes-js" fill="#1A1A1A">
+              <rect x="4" y="8.3" width="1" height="2" fill="#1A1A1A"/>
+              <rect x="10" y="8.3" width="1" height="2" fill="#1A1A1A"/>
+            </g>
+          </g>
+        </g>
+</svg>

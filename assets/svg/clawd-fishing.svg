@@ -1,0 +1,55 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .body-motion { transform-origin: 7.5px 13px; animation: sway 2.6s infinite ease-in-out; }
+      @keyframes sway {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(0, -0.6px) rotate(-2deg); }
+      }
+
+      .rod { transform-origin: 12px 8px; animation: bob-cast 4.8s infinite ease-in-out; }
+      .fish { animation: fish-wiggle 1.8s infinite ease-in-out; }
+      @keyframes bob-cast {
+        0%, 100% { transform: rotate(-4deg); }
+        50% { transform: rotate(4deg) translate(0.2px, -0.3px); }
+      }
+      @keyframes fish-wiggle {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(-0.5px, 0.2px); }
+      }
+          </style>
+        </defs>
+        <rect x="2" y="15" width="12.5" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+        <g fill="#DE886D">
+  <rect x="3" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="5" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="9" y="12" width="1" height="3" fill="#DE886D"/>
+  <rect x="11" y="12" width="1" height="3" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="body-motion">
+            <rect x="2" y="6.5" width="11" height="6.5" fill="#DE886D"/>
+                  <rect x="0.5" y="9.5" width="2.0" height="1.6" fill="#DE886D"/>
+                  <rect x="12.8" y="8.6" width="1.8" height="2.0" fill="#DE886D"/>
+                  <g id="eyes-js" fill="#1A1A1A">
+              <rect x="4" y="8.4" width="1" height="2" fill="#1A1A1A"/>
+              <rect x="10" y="8.4" width="1" height="2" fill="#1A1A1A"/>
+            </g>
+                  <g class="rod">
+                    <rect x="13.9" y="3.5" width="0.5" height="10.5" fill="#8D6E63"/>
+                    <path d="M14.2 3.8C18 2.8 20 5 19 8.4" fill="none" stroke="#8D6E63" stroke-width="0.6" stroke-linecap="round"/>
+                    <path d="M19 8.4V12.6" fill="none" stroke="#CFD8DC" stroke-width="0.4" stroke-linecap="round"/>
+                  </g>
+          </g>
+        </g>
+  <g>
+  <rect x="17.6" y="12.6" width="2.4" height="0.7" fill="#64B5F6"/>
+  <g class="fish">
+    <rect x="18.8" y="11.7" width="1.6" height="0.9" fill="#90CAF9"/>
+    <path d="M20.4 12.15L21.4 11.4L21.4 12.9Z" fill="#64B5F6"/>
+  </g>
+</g>
+</svg>

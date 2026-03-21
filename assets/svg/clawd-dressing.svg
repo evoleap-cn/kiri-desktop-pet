@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .shadow-dress {
+        transform-origin: 8px 15.5px;
+        animation: shadow-dress 3.4s infinite ease-in-out;
+      }
+
+      .body-dress {
+        transform-origin: 7px 11px;
+        animation: body-dress 3.4s infinite ease-in-out;
+      }
+
+      .arm-left {
+        transform-origin: 2px 9px;
+        animation: arm-left 1.2s infinite ease-in-out;
+      }
+
+      .hat {
+        animation: hat-adjust 2.2s infinite ease-in-out;
+      }
+
+      .blink {
+        animation: blink 7.1s infinite steps(1, end);
+      }
+
+      @keyframes shadow-dress {
+        0%, 100% { transform: scaleX(1); opacity: 0.38; }
+        50% { transform: scaleX(1.05); opacity: 0.45; }
+      }
+
+      @keyframes body-dress {
+        0%, 100% { transform: translate(0, 0) rotate(-1deg); }
+        50% { transform: translate(0.2px, 0.5px) rotate(1deg); }
+      }
+
+      @keyframes arm-left {
+        0%, 100% { transform: translate(0, 0) rotate(25deg); }
+        50% { transform: translate(0.5px, -0.6px) rotate(50deg); }
+      }
+
+      @keyframes hat-adjust {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(-0.2px, -0.5px) rotate(-5deg); }
+      }
+
+      @keyframes blink {
+        0%, 10%, 100% { transform: scaleY(1); }
+        11%, 14% { transform: scaleY(0.2); }
+      }
+    </style>
+  </defs>
+
+  <g id="shadow-js">
+    <rect class="shadow-dress" x="2" y="15" width="12" height="1" fill="#000000" opacity="0.38"/>
+  </g>
+
+  <g id="body-js">
+    <g class="body-dress">
+      <g fill="#DE886D">
+        <rect x="3" y="12" width="1" height="3"/>
+        <rect x="5" y="12" width="1" height="3"/>
+        <rect x="9" y="12" width="1" height="3"/>
+        <rect x="11" y="12" width="1" height="3"/>
+        <rect x="2" y="6" width="11" height="7"/>
+        <g class="arm-left">
+          <rect x="1" y="9" width="2" height="2"/>
+        </g>
+        <rect x="12" y="9" width="2" height="2"/>
+      </g>
+
+      <rect x="4" y="11.2" width="7" height="1.2" fill="#5E8B7E"/>
+      <rect x="6.6" y="11.1" width="1.2" height="1.4" fill="#D6EADF"/>
+
+      <g class="hat">
+        <rect x="2.8" y="4.6" width="9.4" height="1.2" fill="#C75C5C"/>
+        <rect x="4.2" y="3.2" width="6.5" height="2" fill="#D77A61"/>
+      </g>
+
+      <g id="eyes-js">
+        <g class="blink" fill="#000000">
+          <rect x="4" y="8" width="1" height="2"/>
+          <rect x="10" y="8" width="1" height="2"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

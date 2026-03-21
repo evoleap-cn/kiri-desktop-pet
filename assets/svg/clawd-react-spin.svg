@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs><style>
+    .spin { transform-origin: 7.5px 13px; animation: spin 2.1s 1 ease-in-out forwards; }
+    .swirl { opacity: 0; animation: swirl 2.1s 1 ease-in-out forwards; }
+    @keyframes spin { 0% { transform: rotate(0deg) scale(1); } 35% { transform: rotate(140deg) scale(0.97); } 70% { transform: rotate(300deg) scale(1.02); } 100% { transform: rotate(360deg) scale(1); } }
+    @keyframes swirl { 0%,18% { opacity: 0; } 30%,76% { opacity: 0.8; } 100% { opacity: 0; } }
+  </style></defs>
+  <path class="swirl" d="M0 11C2 6 13 5.5 15 11" fill="none" stroke="#FFF0B0" stroke-width="0.9" stroke-linecap="round"/>
+  <path class="swirl" d="M1.2 13.1C3.4 16.3 11.6 16.8 14 12.6" fill="none" stroke="#D8F6FF" stroke-width="0.8" stroke-linecap="round"/>
+  <rect x="2.2" y="15" width="10.8" height="1" fill="#000" opacity="0.24"/>
+  <g class="spin"><g id="hat-anchor" transform="translate(3.5 1.8)" data-hat-rotate="-8" data-hat-scale="0.25"></g><g fill="#DE886D"><rect x="3" y="12" width="1" height="3"/><rect x="5" y="12" width="1" height="3"/><rect x="9" y="12" width="1" height="3"/><rect x="11" y="12" width="1" height="3"/><rect x="2" y="6" width="11" height="7"/><rect x="1" y="9.1" width="2" height="1.9"/><rect x="12" y="9.1" width="2" height="1.9"/></g><rect x="4.2" y="8" width="1" height="1.8" rx="0.45" fill="#1A1A1A"/><rect x="10" y="8" width="1" height="1.8" rx="0.45" fill="#1A1A1A"/><rect x="5.5" y="9.2" width="3" height="0.65" rx="0.3" fill="#8F4A39" opacity="0.74"/></g>
+</svg>

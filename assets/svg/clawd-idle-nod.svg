@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .shadow-nod { transform-origin: 8px 15.5px; animation: shadow 3.8s infinite ease-in-out; }
+      .body-nod { transform-origin: 7.5px 13px; animation: nod 3.8s infinite ease-in-out; }
+      .sleep-z { animation: zzz 3.8s infinite ease-in-out; opacity: 0; }
+      .sleep-z.two { animation-delay: 1.2s; }
+      @keyframes shadow { 0%,100% { transform: scaleX(1); opacity: 0.34; } 50% { transform: scaleX(1.04); opacity: 0.44; } }
+      @keyframes nod {
+        0%, 18%, 100% { transform: translate(0, 0) rotate(0deg); }
+        34%, 56% { transform: translate(0.3px, 1.1px) rotate(5deg); }
+        66% { transform: translate(0, -0.2px) rotate(-1deg); }
+      }
+      @keyframes zzz {
+        0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+        28% { opacity: 0.75; }
+        100% { transform: translate(2.5px, -5.8px) scale(1); opacity: 0; }
+      }
+    </style>
+  </defs>
+  <g id="shadow-js"><rect class="shadow-nod" x="2" y="15" width="11.6" height="1" fill="#000000" opacity="0.34"/></g>
+  <g class="sleep-z" fill="#C8B2FF">
+    <rect x="13.3" y="3.5" width="2.4" height="0.7"/>
+    <rect x="14.4" y="4.2" width="0.8" height="0.7"/>
+    <rect x="13.7" y="4.9" width="0.8" height="0.7"/>
+    <rect x="13.1" y="5.6" width="2.4" height="0.7"/>
+  </g>
+  <g class="sleep-z two" fill="#E3D8FF">
+    <rect x="16.2" y="2.3" width="1.8" height="0.55"/>
+    <rect x="17.1" y="2.85" width="0.6" height="0.55"/>
+    <rect x="16.6" y="3.4" width="0.6" height="0.55"/>
+    <rect x="16.1" y="3.95" width="1.8" height="0.55"/>
+  </g>
+  <g id="body-js" class="body-nod">
+    <g fill="#DE886D">
+      <rect x="3" y="12" width="1" height="3"/>
+      <rect x="5" y="12" width="1" height="3"/>
+      <rect x="9" y="12" width="1" height="3"/>
+      <rect x="11" y="12" width="1" height="3"/>
+      <rect x="2" y="6" width="11" height="7" rx="1.1"/>
+      <rect x="1" y="9.2" width="2" height="1.8"/>
+      <rect x="12" y="9.2" width="2" height="1.8"/>
+    </g>
+    <rect x="4.1" y="8.7" width="2" height="0.5" rx="0.2" fill="#413636"/>
+    <rect x="9" y="8.7" width="2" height="0.5" rx="0.2" fill="#413636"/>
+    <rect x="5.9" y="9.7" width="2.2" height="0.45" rx="0.2" fill="#8F4A39" opacity="0.68"/>
+  </g>
+</svg>

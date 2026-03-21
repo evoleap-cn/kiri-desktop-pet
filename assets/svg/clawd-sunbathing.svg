@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      /* Gentle rise and fall of belly breathing */
+      .belly-breathe {
+        transform-origin: 7.5px 12px;
+        animation: belly 4s infinite ease-in-out;
+      }
+
+      /* Sleepy eyes — half open, occasional blink */
+      .eyes-lazy {
+        transform-origin: 7.5px 9px;
+        animation: lazy-eyes 8s infinite ease-in-out;
+      }
+
+      /* Occasional leg wiggle */
+      .leg-wiggle {
+        transform-origin: 5px 14px;
+        animation: wiggle-leg 6s infinite ease-in-out;
+      }
+
+      /* Arm behind head */
+      .arm-behind {
+        transform-origin: 1px 8px;
+      }
+
+      /* Sunglasses shine */
+      .glasses-shine {
+        animation: shine 4s infinite ease-in-out;
+        opacity: 0;
+      }
+
+      @keyframes belly {
+        0%, 100% { transform: scaleY(1) translate(0, 0); }
+        50%      { transform: scaleY(1.03) translate(0, 0.3px); }
+      }
+
+      @keyframes lazy-eyes {
+        0%, 20%  { transform: scaleY(0.4); }
+        25%      { transform: scaleY(0.1); }
+        30%, 70% { transform: scaleY(0.4); }
+        75%      { transform: scaleY(0.1); }
+        80%, 100% { transform: scaleY(0.4); }
+      }
+
+      @keyframes wiggle-leg {
+        0%, 40%, 100% { transform: rotate(0deg); }
+        45%           { transform: rotate(8deg); }
+        50%           { transform: rotate(-5deg); }
+        55%           { transform: rotate(3deg); }
+        60%           { transform: rotate(0deg); }
+      }
+
+      @keyframes shine {
+        0%, 40%, 100% { opacity: 0; }
+        50%           { opacity: 0.6; }
+        60%           { opacity: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- Ground Shadow (wider for lying pose) -->
+  <rect x="0" y="15" width="15" height="1" fill="#000000" opacity="0.35"/>
+
+  <!-- Beach chair (simplified) -->
+  <g fill="#8D6E63">
+    <!-- Chair back (angled) -->
+    <rect x="-2" y="8" width="1" height="6" transform="rotate(-25, -1.5, 11)"/>
+    <!-- Chair seat -->
+    <rect x="-1" y="12" width="17" height="1"/>
+    <!-- Chair front leg -->
+    <rect x="14" y="12" width="1" height="3"/>
+    <!-- Chair back leg -->
+    <rect x="0" y="12" width="1" height="3"/>
+  </g>
+  <!-- Chair stripes -->
+  <rect x="1" y="11.5" width="3" height="1" fill="#F44336" opacity="0.6"/>
+  <rect x="5" y="11.5" width="3" height="1" fill="#FFFFFF" opacity="0.5"/>
+  <rect x="9" y="11.5" width="3" height="1" fill="#F44336" opacity="0.6"/>
+  <rect x="13" y="11.5" width="2" height="1" fill="#FFFFFF" opacity="0.5"/>
+
+  <!-- Lying body (rotated slightly, reclined) -->
+  <g transform="translate(1, -1) rotate(-15, 7.5, 11)">
+    <g class="belly-breathe">
+      <!-- Torso (wider when lying) -->
+      <rect x="2" y="7" width="11" height="6" fill="#DE886D"/>
+
+      <!-- Legs (extended forward) -->
+      <g class="leg-wiggle">
+        <g fill="#DE886D">
+          <rect x="12" y="10" width="4" height="1"/>
+          <rect x="12" y="12" width="4" height="1"/>
+        </g>
+      </g>
+
+      <!-- Left arm (behind head) -->
+      <g class="arm-behind">
+        <rect x="-1" y="7" width="3" height="2" fill="#DE886D"/>
+      </g>
+
+      <!-- Right arm (resting on belly) -->
+      <rect x="7" y="9" width="2" height="2" fill="#DE886D" opacity="0.9"/>
+
+      <!-- Sunglasses -->
+      <rect x="3" y="8" width="3" height="1.5" fill="#212121" rx="0"/>
+      <rect x="7" y="8" width="3" height="1.5" fill="#212121" rx="0"/>
+      <rect x="6" y="8.5" width="1" height="0.5" fill="#212121"/>
+      <!-- Shine on glasses -->
+      <rect class="glasses-shine" x="4" y="8" width="1" height="0.5" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>

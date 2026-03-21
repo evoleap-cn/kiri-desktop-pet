@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .body-tense {
+        transform-origin: 7.5px 6px;
+        animation: body-tense 0.95s infinite alternate ease-in-out;
+      }
+
+      .leg-tense-l {
+        transform-origin: 3.5px 13px;
+        animation: leg-tense-l 0.45s infinite ease-in-out;
+      }
+
+      .leg-tense-r {
+        transform-origin: 11.5px 13px;
+        animation: leg-tense-r 0.45s infinite ease-in-out;
+      }
+
+      .arm-tense-l {
+        transform-origin: 2px 9px;
+        animation: arm-tense-l 0.45s infinite ease-in-out;
+      }
+
+      .arm-tense-r {
+        transform-origin: 13px 9px;
+        animation: arm-tense-r 0.45s infinite ease-in-out;
+      }
+
+      .shadow-lift {
+        transform-origin: 7.5px 15.5px;
+        animation: shadow-lift 0.95s infinite alternate ease-in-out;
+      }
+
+      .sweat {
+        animation: sweat 0.8s infinite ease-in-out;
+      }
+
+      @keyframes body-tense {
+        0% { transform: rotate(-2deg) translate(-0.6px, 0); }
+        100% { transform: rotate(2deg) translate(0.6px, 0); }
+      }
+
+      @keyframes leg-tense-l {
+        0%, 100% { transform: rotate(10deg); }
+        50% { transform: rotate(-8deg); }
+      }
+
+      @keyframes leg-tense-r {
+        0%, 100% { transform: rotate(-10deg); }
+        50% { transform: rotate(8deg); }
+      }
+
+      @keyframes arm-tense-l {
+        0%, 100% { transform: rotate(55deg); }
+        50% { transform: rotate(75deg); }
+      }
+
+      @keyframes arm-tense-r {
+        0%, 100% { transform: rotate(-55deg); }
+        50% { transform: rotate(-75deg); }
+      }
+
+      @keyframes shadow-lift {
+        0% { transform: scale(0.66); opacity: 0.18; }
+        100% { transform: scale(0.76); opacity: 0.28; }
+      }
+
+      @keyframes sweat {
+        0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+        50% { transform: translate(0.2px, 0.8px); opacity: 0.9; }
+      }
+    </style>
+  </defs>
+
+  <rect class="shadow-lift" x="3" y="15" width="9" height="1" fill="#000000"/>
+
+  <g class="body-tense">
+    <g id="hat-anchor" transform="translate(3.5 1.8)" data-hat-rotate="-8" data-hat-scale="0.25"></g>
+    <g fill="#DE886D">
+      <g class="leg-tense-l">
+        <rect x="3" y="13" width="1" height="2"/>
+        <rect x="5" y="13" width="1" height="2"/>
+      </g>
+      <g class="leg-tense-r">
+        <rect x="9" y="13" width="1" height="2"/>
+        <rect x="11" y="13" width="1" height="2"/>
+      </g>
+      <rect x="2" y="6" width="11" height="7"/>
+      <g class="arm-tense-l">
+        <rect x="0" y="9" width="2" height="2"/>
+      </g>
+      <g class="arm-tense-r">
+        <rect x="13" y="9" width="2" height="2"/>
+      </g>
+    </g>
+
+    <g fill="#000000">
+      <rect x="4" y="8" width="1" height="2"/>
+      <rect x="10" y="8" width="1" height="2"/>
+      <rect x="6" y="10.5" width="3" height="0.7"/>
+    </g>
+
+    <rect class="sweat" x="12.8" y="7.1" width="0.9" height="1.5" fill="#A5D6F9" opacity="0.85"/>
+  </g>
+</svg>

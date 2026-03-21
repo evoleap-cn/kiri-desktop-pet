@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      /* Fast body bob */
+      .run-bob {
+        transform-origin: 7.5px 13px;
+        animation: run-bob 0.25s infinite ease-in-out;
+      }
+
+      /* Eye blink */
+      .eyes-blink {
+        transform-origin: 7.5px 9px;
+        animation: eye-blink 4s infinite ease-in-out;
+      }
+
+      /* JS-controllable eye/body/shadow */
+      #eyes-js, #body-js, #shadow-js {
+        transition: transform 0.15s ease-out;
+      }
+      #shadow-js {
+        transform-origin: 7.5px 15px;
+      }
+
+      /* Fast leg animations */
+      .leg-1 { animation: run-step-1 0.25s infinite linear; transform-origin: top center; transform-box: fill-box; }
+      .leg-2 { animation: run-step-2 0.25s infinite linear; transform-origin: top center; transform-box: fill-box; }
+
+      /* Wide arm swing */
+      .arm-l-run {
+        transform-origin: 1px 10px;
+        animation: arm-run-l 0.25s infinite ease-in-out;
+      }
+      .arm-r-run {
+        transform-origin: 14px 10px;
+        animation: arm-run-r 0.25s infinite ease-in-out;
+      }
+
+      /* Shadow pulse */
+      .shadow-run {
+        transform-origin: 7.5px 15.5px;
+        animation: shadow-run 0.25s infinite ease-in-out;
+      }
+
+      /* Dust puffs behind feet */
+      .dust {
+        opacity: 0;
+        animation: dust-puff 0.5s infinite ease-out;
+      }
+      .dust-2 { animation-delay: 0.25s; }
+
+      @keyframes run-bob {
+        0%, 100% { transform: translateY(0) rotate(3deg); }
+        50% { transform: translateY(-3px) rotate(3deg); }
+      }
+
+      @keyframes eye-blink {
+        0%, 10%, 100% { transform: scaleY(1); }
+        5% { transform: scaleY(0.1); }
+      }
+
+      @keyframes run-step-1 {
+        0%, 100% { transform: rotate(0deg) scaleY(1); }
+        50% { transform: rotate(-35deg) scaleY(0.6); }
+      }
+      @keyframes run-step-2 {
+        0%, 100% { transform: rotate(-35deg) scaleY(0.6); }
+        50% { transform: rotate(0deg) scaleY(1); }
+      }
+
+      @keyframes arm-run-l {
+        0%, 100% { transform: rotate(-20deg); }
+        50% { transform: rotate(25deg); }
+      }
+      @keyframes arm-run-r {
+        0%, 100% { transform: rotate(20deg); }
+        50% { transform: rotate(-25deg); }
+      }
+
+      @keyframes shadow-run {
+        0%, 100% { transform: scaleX(1.1); opacity: 0.4; }
+        50% { transform: scaleX(0.8); opacity: 0.3; }
+      }
+
+      @keyframes dust-puff {
+        0% { opacity: 0.6; transform: translate(0, 0) scale(1); }
+        100% { opacity: 0; transform: translate(-4px, -2px) scale(0.3); }
+      }
+    </style>
+  </defs>
+
+  <!-- Ground Shadow (JS-controlled) -->
+  <g id="shadow-js">
+    <rect class="shadow-run" x="3" y="15" width="9" height="1" fill="#000000" opacity="0.5"/>
+  </g>
+
+  <!-- Dust puffs -->
+  <rect class="dust" x="1" y="14" width="2" height="1" fill="#C0C0C0" rx="0.5"/>
+  <rect class="dust dust-2" x="-1" y="13" width="2" height="1" fill="#C0C0C0" rx="0.5"/>
+
+  <!-- Running Legs -->
+  <g id="legs" fill="#DE886D">
+    <rect class="leg-1" x="3" y="11" width="1" height="4"/>
+    <rect class="leg-2" x="5" y="11" width="1" height="4"/>
+    <rect class="leg-1" x="9" y="11" width="1" height="4"/>
+    <rect class="leg-2" x="11" y="11" width="1" height="4"/>
+  </g>
+
+  <!-- Upper Body (JS body-shift + run bob) -->
+  <g id="body-js">
+    <g class="run-bob">
+      <g id="hat-anchor" transform="translate(3.5 1.8)" data-hat-rotate="-8" data-hat-scale="0.25"></g>
+      <!-- Torso -->
+      <rect id="torso" x="2" y="6" width="11" height="7" fill="#DE886D"/>
+      <!-- Left Arm -->
+      <g class="arm-l-run">
+        <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+      </g>
+      <!-- Right Arm -->
+      <g class="arm-r-run">
+        <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+      </g>
+      <!-- Eyes: JS translate wrapper + CSS blink -->
+      <g id="eyes-js" fill="#000000">
+        <g class="eyes-blink">
+          <rect x="4" y="8" width="1" height="2"/>
+          <rect x="10" y="8" width="1" height="2"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

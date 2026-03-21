@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .shadow-writing {
+        transform-origin: 9px 15.5px;
+        animation: shadow-writing 3.2s infinite ease-in-out;
+      }
+
+      .body-writing {
+        transform-origin: 7px 11px;
+        animation: body-writing 3.2s infinite ease-in-out;
+      }
+
+      .writing-arm {
+        transform-origin: 11px 10px;
+        animation: writing-arm 0.55s infinite ease-in-out;
+      }
+
+      .pencil-tip {
+        animation: pencil-tip 0.55s infinite ease-in-out;
+      }
+
+      .note-lines {
+        animation: note-lines 2.4s infinite steps(1, end);
+      }
+
+      .blink {
+        animation: blink 7.4s infinite steps(1, end);
+      }
+
+      @keyframes shadow-writing {
+        0%, 100% { transform: scaleX(1); opacity: 0.38; }
+        50% { transform: scaleX(1.05); opacity: 0.44; }
+      }
+
+      @keyframes body-writing {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(0.45px, 0.6px) rotate(1.2deg); }
+      }
+
+      @keyframes writing-arm {
+        0%, 100% { transform: translate(0, 0) rotate(6deg); }
+        50% { transform: translate(0.8px, 0.5px) rotate(16deg); }
+      }
+
+      @keyframes pencil-tip {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(0.6px, 0.4px); }
+      }
+
+      @keyframes note-lines {
+        0%, 45% { opacity: 0.25; }
+        50%, 100% { opacity: 0.8; }
+      }
+
+      @keyframes blink {
+        0%, 10%, 100% { transform: scaleY(1); }
+        11%, 14% { transform: scaleY(0.18); }
+      }
+    </style>
+  </defs>
+
+  <g id="shadow-js">
+    <rect class="shadow-writing" x="1.5" y="15" width="14" height="1" fill="#000000" opacity="0.38"/>
+  </g>
+
+  <rect x="9" y="10.8" width="8" height="4.2" fill="#F1E8D8"/>
+  <rect x="9.6" y="11.4" width="6.8" height="0.5" fill="#D9CBB7" opacity="0.55"/>
+  <rect class="note-lines" x="9.8" y="12.4" width="5.5" height="0.45" fill="#90A4AE" opacity="0.75"/>
+  <rect class="note-lines" x="10.2" y="13.3" width="4.5" height="0.45" fill="#90A4AE" opacity="0.75"/>
+
+  <g id="body-js">
+    <g class="body-writing">
+      <g fill="#DE886D">
+        <rect x="3" y="13" width="1" height="2"/>
+        <rect x="5" y="13" width="1" height="2"/>
+        <rect x="8.5" y="13" width="1" height="2"/>
+        <rect x="10.5" y="13" width="1" height="2"/>
+        <rect x="2" y="6" width="9.5" height="7"/>
+        <rect x="1" y="9" width="2" height="2"/>
+        <g class="writing-arm">
+          <rect x="10" y="9" width="2" height="2"/>
+        </g>
+      </g>
+
+      <g class="writing-arm">
+        <rect x="11.3" y="10.4" width="3.4" height="0.7" fill="#F2C14E" transform="rotate(18 11.3 10.4)"/>
+        <rect class="pencil-tip" x="14.2" y="11.2" width="0.8" height="0.5" fill="#5D4037" transform="rotate(18 14.2 11.2)"/>
+      </g>
+
+      <g id="eyes-js">
+        <g class="blink" fill="#000000">
+          <rect x="4" y="8" width="1" height="2"/>
+          <rect x="8" y="8" width="1" height="2"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
