@@ -1,0 +1,42 @@
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+        <defs>
+          <style>
+      #eyes-js, #body-js, #shadow-js { transition: transform 0.2s ease-out; }
+
+      .breathe-anim { transform-origin: 7.5px 13px; animation: breathe 3.6s infinite ease-in-out; }
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1) translate(0, 0); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      .cape { transform-origin: 7.5px 10px; animation: cape-wave 2.4s infinite ease-in-out; }
+      @keyframes cape-wave {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(-4deg) translate(-0.2px, 0.3px); }
+      }
+          </style>
+        </defs>
+        <rect x="2.6" y="15.1" width="10.8" height="1" fill="#000000" id="shadow-js" opacity="0.5"/>
+
+        <g fill="#DE886D">
+  <rect x="3" y="11" width="1" height="4" fill="#DE886D"/>
+  <rect x="5" y="11" width="1" height="4" fill="#DE886D"/>
+  <rect x="9" y="11" width="1" height="4" fill="#DE886D"/>
+  <rect x="11" y="11" width="1" height="4" fill="#DE886D"/>
+</g>
+        <g id="body-js">
+          <g class="breathe-anim">
+            <g class="cape">
+                    <path d="M2.5 7.2L0.2 13.8L4.2 13.0L7.5 7.6Z" fill="#7986CB" opacity="0.9"/>
+                    <path d="M12.5 7.2L15.0 14.2L10.5 13.2L7.8 7.6Z" fill="#5C6BC0" opacity="0.92"/>
+                  </g>
+                  <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+                  <rect x="0" y="9" width="2" height="2" fill="#DE886D"/>
+                  <rect x="13" y="9" width="2" height="2" fill="#DE886D"/>
+                  <g id="eyes-js" fill="#1A1A1A">
+              <rect x="4" y="8.1" width="1" height="2" fill="#1A1A1A"/>
+              <rect x="10" y="8.1" width="1" height="2" fill="#1A1A1A"/>
+            </g>
+          </g>
+        </g>
+</svg>

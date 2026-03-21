@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .shadow-coffee {
+        transform-origin: 8px 15.5px;
+        animation: shadow-coffee 3.8s infinite ease-in-out;
+      }
+
+      .body-coffee {
+        transform-origin: 7px 11px;
+        animation: body-coffee 3.8s infinite ease-in-out;
+      }
+
+      .cup-arm {
+        transform-origin: 11px 10px;
+        animation: cup-arm 5.2s infinite ease-in-out;
+      }
+
+      .steam-1 { animation: steam 1.8s infinite ease-in-out; }
+      .steam-2 { animation: steam 1.8s infinite ease-in-out 0.45s; }
+      .blink { animation: blink 7s infinite steps(1, end); }
+
+      @keyframes shadow-coffee {
+        0%, 100% { transform: scaleX(1); opacity: 0.4; }
+        50% { transform: scaleX(1.05); opacity: 0.46; }
+      }
+
+      @keyframes body-coffee {
+        0%, 100% { transform: translate(0, 0) rotate(-0.8deg); }
+        50% { transform: translate(0.2px, 0.5px) rotate(0.8deg); }
+      }
+
+      @keyframes cup-arm {
+        0%, 18%, 100% { transform: translate(0, 0) rotate(0deg); }
+        28%, 42% { transform: translate(0.6px, -0.8px) rotate(-8deg); }
+        52% { transform: translate(0, 0) rotate(0deg); }
+      }
+
+      @keyframes steam {
+        0% { transform: translate(0, 0); opacity: 0; }
+        25% { opacity: 0.65; }
+        100% { transform: translate(0.6px, -2px); opacity: 0; }
+      }
+
+      @keyframes blink {
+        0%, 8%, 100% { transform: scaleY(1); }
+        9%, 12% { transform: scaleY(0.16); }
+      }
+    </style>
+  </defs>
+
+  <g id="shadow-js">
+    <rect class="shadow-coffee" x="1.5" y="15" width="12" height="1" fill="#000000" opacity="0.4"/>
+  </g>
+
+  <g id="body-js">
+    <g class="body-coffee">
+      <g fill="#DE886D">
+        <rect x="3" y="12" width="1" height="3"/>
+        <rect x="5" y="12" width="1" height="3"/>
+        <rect x="9" y="12" width="1" height="3"/>
+        <rect x="11" y="12" width="1" height="3"/>
+        <rect x="2" y="6" width="11" height="7"/>
+        <rect x="1" y="9" width="2" height="2"/>
+        <g class="cup-arm">
+          <rect x="12" y="9" width="2" height="2"/>
+        </g>
+      </g>
+
+      <rect x="10.5" y="8.3" width="4" height="4" fill="#6B7F91" opacity="0.22"/>
+
+      <g class="cup-arm">
+        <rect x="13.4" y="8.8" width="2.2" height="2.6" fill="#B8D6E8"/>
+        <rect x="15.4" y="9.2" width="0.8" height="1.6" fill="none" stroke="#B8D6E8" stroke-width="0.6"/>
+      </g>
+
+      <g fill="#F5F5F5" opacity="0.7">
+        <rect class="steam-1" x="14" y="6.8" width="0.6" height="1.4"/>
+        <rect class="steam-2" x="14.9" y="6.2" width="0.6" height="1.2"/>
+      </g>
+
+      <g id="eyes-js">
+        <g class="blink" fill="#000000">
+          <rect x="4" y="8" width="1" height="2"/>
+          <rect x="10" y="8" width="1" height="2"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

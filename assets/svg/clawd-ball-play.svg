@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .shadow-ball {
+        transform-origin: 9px 15.5px;
+        animation: shadow-ball 1s infinite ease-in-out;
+      }
+
+      .body-ball {
+        transform-origin: 7px 11px;
+        animation: body-ball 1s infinite ease-in-out;
+      }
+
+      .ball-bounce {
+        animation: ball-bounce 1s infinite ease-in-out;
+      }
+
+      .arm-ball {
+        transform-origin: 12px 9px;
+        animation: arm-ball 1s infinite ease-in-out;
+      }
+
+      @keyframes shadow-ball {
+        0%, 100% { transform: scaleX(1); opacity: 0.42; }
+        50% { transform: scaleX(1.09); opacity: 0.34; }
+      }
+
+      @keyframes body-ball {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(0, -1px); }
+      }
+
+      @keyframes ball-bounce {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(0, -5px); }
+      }
+
+      @keyframes arm-ball {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(-12deg); }
+      }
+    </style>
+  </defs>
+
+  <g id="shadow-js">
+    <rect class="shadow-ball" x="2" y="15" width="15" height="1" fill="#000000" opacity="0.42"/>
+  </g>
+
+  <g id="body-js">
+    <g class="body-ball">
+      <g fill="#DE886D">
+        <rect x="3" y="12" width="1" height="3"/>
+        <rect x="5" y="12" width="1" height="3"/>
+        <rect x="8.5" y="12" width="1" height="3"/>
+        <rect x="10.5" y="12" width="1" height="3"/>
+        <rect x="2" y="6" width="10" height="7"/>
+        <rect x="1" y="9" width="2" height="2"/>
+        <g class="arm-ball">
+          <rect x="11" y="9" width="2" height="2"/>
+        </g>
+      </g>
+
+      <g id="eyes-js" fill="#000000">
+        <rect x="4" y="8" width="1" height="2"/>
+        <rect x="8" y="8" width="1" height="2"/>
+      </g>
+    </g>
+  </g>
+
+  <g class="ball-bounce">
+    <circle cx="16" cy="11" r="2.4" fill="#F4D35E"/>
+    <rect x="14.5" y="10.7" width="3" height="0.5" fill="#EE964B"/>
+    <rect x="15.7" y="9.5" width="0.5" height="3" fill="#EE964B"/>
+  </g>
+</svg>

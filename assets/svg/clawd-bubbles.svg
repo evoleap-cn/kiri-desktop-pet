@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      .shadow-bubbles { transform-origin: 8px 15.5px; animation: shadow 3.4s infinite ease-in-out; }
+      .body-bubbles { transform-origin: 7px 12px; animation: body 3.4s infinite ease-in-out; }
+      .wand-arm { transform-origin: 12px 10px; animation: wand 2.6s infinite ease-in-out; }
+      .blink { animation: blink 7s infinite steps(1, end); }
+      .bubble-a, .bubble-b, .bubble-c { animation: float 3.3s infinite ease-in-out; opacity: 0; }
+      .bubble-b { animation-delay: 0.9s; }
+      .bubble-c { animation-delay: 1.8s; }
+      @keyframes shadow { 0%,100% { transform: scaleX(1); opacity: 0.35; } 50% { transform: scaleX(1.05); opacity: 0.45; } }
+      @keyframes body { 0%,100% { transform: translate(0, 0) rotate(-1deg); } 50% { transform: translate(0.2px, 0.6px) rotate(1.2deg); } }
+      @keyframes wand { 0%,100% { transform: translate(0,0) rotate(0deg); } 35% { transform: translate(0.4px, -0.8px) rotate(-7deg); } 60% { transform: translate(-0.2px, 0.2px) rotate(3deg); } }
+      @keyframes float { 0% { transform: translate(0, 0) scale(0.45); opacity: 0; } 20% { opacity: 0.8; } 100% { transform: translate(1.2px, -5px) scale(1); opacity: 0; } }
+      @keyframes blink { 0%,10%,100% { transform: scaleY(1); } 11%,13% { transform: scaleY(0.16); } }
+    </style>
+  </defs>
+  <g id="shadow-js">
+    <rect class="shadow-bubbles" x="2" y="15" width="11.8" height="1" fill="#000000" opacity="0.36"/>
+  </g>
+  <g class="bubble-a" fill="#C7ECFF"><circle cx="15.4" cy="6.8" r="1.7"/></g>
+  <g class="bubble-b" fill="#DDF7FF"><circle cx="17.4" cy="8.8" r="1.1"/></g>
+  <g class="bubble-c" fill="#C7ECFF"><circle cx="13.8" cy="9.8" r="0.9"/></g>
+  <g id="body-js" class="body-bubbles">
+    <g fill="#DE886D">
+      <rect x="3" y="12" width="1" height="3"/>
+      <rect x="5" y="12" width="1" height="3"/>
+      <rect x="9" y="12" width="1" height="3"/>
+      <rect x="11" y="12" width="1" height="3"/>
+      <rect x="2" y="6" width="11" height="7"/>
+      <rect x="1" y="9" width="2" height="2"/>
+      <g class="wand-arm">
+        <rect x="12.6" y="8.8" width="2.2" height="2"/>
+        <rect x="14.4" y="7.4" width="0.5" height="4.3" fill="#D7B78E"/>
+        <circle cx="14.6" cy="7.1" r="1.1" fill="none" stroke="#C7ECFF" stroke-width="0.65"/>
+      </g>
+    </g>
+    <g id="eyes-js" fill="#1B1B1B">
+      <g class="blink">
+        <rect x="4.2" y="8" width="1" height="1.9" rx="0.2"/>
+        <rect x="9.9" y="8" width="1" height="1.9" rx="0.2"/>
+      </g>
+    </g>
+    <rect x="5.7" y="9.2" width="2.6" height="0.55" rx="0.25" fill="#8F4A39" opacity="0.72"/>
+    <circle cx="3.8" cy="9.2" r="0.52" fill="#F7AFC0" opacity="0.56"/>
+    <circle cx="11.3" cy="9.2" r="0.52" fill="#F7AFC0" opacity="0.56"/>
+  </g>
+</svg>
