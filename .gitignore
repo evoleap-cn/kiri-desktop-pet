@@ -1,0 +1,19 @@
+node_modules/
+node_modules
+dist/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# Local temp files
+.tmp_*
+.tmp-*
+*.tmp
+
+# Third-party reference repo
+clawd-tank/
+
+# Debug logs
+logs/
