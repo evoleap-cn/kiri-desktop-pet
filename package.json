@@ -1,0 +1,56 @@
+{
+  "name": "clawd-desktop-pet",
+  "version": "0.2.0",
+  "description": "A Linux desktop pet with rich pixel-art animations and external hook support.",
+  "homepage": "https://github.com/zgyk4167/clawd-desktop-pet",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --linux",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "clawd",
+    "desktop-pet",
+    "electron",
+    "linux",
+    "pixel-art"
+  ],
+  "author": {
+    "name": "Frank"
+  },
+  "license": "MIT",
+  "type": "commonjs",
+  "build": {
+    "appId": "com.clawd.desktop.pet",
+    "productName": "Clawd Desktop Pet",
+    "linux": {
+      "category": "Utility",
+      "maintainer": "Frank <zgyk4167@users.noreply.github.com>",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "files": [
+      "src/**/*",
+      "assets/svg/**/*",
+      "hooks/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^41.0.2",
+    "electron-builder": "^26.8.1"
+  }
+}
