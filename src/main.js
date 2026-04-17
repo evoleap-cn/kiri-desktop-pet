@@ -167,6 +167,10 @@ function showFinalText(text) {
 }
 
 function hideOverlayWindow() {
+  // Clear ASR text state
+  accumulatedAsrText = "";
+  pendingText = "";
+  
   if (overlayWin && !overlayWin.isDestroyed()) {
     overlayWin.webContents.send("hide");
     // Don't destroy, keep ready for next use
