@@ -370,8 +370,25 @@ function initAsrConnection() {
           }
         }
       } else if (header.name === "SentenceEnd") {
-        // Current sentence ended, pendingText already contains the text
-        console.log(`[ASR] Sentence ended, current text: "${pendingText}"`);
+        // ASR server VAD detected end of sentence - inject pending text immediately
+        const serverText = msg.payload?.result || "";
+        console.log(`[ASR] SentenceEnd received, server result: "${serverText}"`);
+        
+        // Use server's result if available, otherwise use our pendingText
+        const textToInject = serverText || pendingText;
+        if (textToInject && textToInject.trim()) {
+          console.log(`[ASR] SentenceEnd - injecting: "${textToInject}"`);
+          injectText(textToInject)
+            .then(() => {
+              console.log('[ASR] SentenceEnd text injected successfully');
+            })
+            .catch(err => {
+              console.error('[ASR] Failed to inject SentenceEnd text:', err.message);
+            });
+          // Clear pending text after injection
+          accumulatedAsrText += (accumulatedAsrText ? " " : "") + textToInject;
+          pendingText = "";
+        }
       } else if (header.name === "TranscriptionCompleted") {
         // Final result - inject any remaining text
         const text = msg.payload?.result || "";
@@ -446,93 +463,6 @@ let closeResolve = null;
 let accumulatedAsrText = "";  // Accumulate text from sentence segments
 let pendingText = "";         // Current segment text
 
-// VAD (Voice Activity Detection) - Silence detection
-let vadSilenceThresholdMs = 1500;     // 1.5 seconds of silence triggers injection
-let vadSilenceTimer = null;
-let vadLastAudioTime = 0;
-const VAD_ENERGY_THRESHOLD = 50;      // Energy threshold for silence detection (0-32768)
-
-/**
- * Calculate audio energy from Int16Array buffer
- * Returns RMS (Root Mean Square) energy value
- */
-function calculateAudioEnergy(buffer) {
-  let sum = 0;
-  for (let i = 0; i < buffer.length; i++) {
-    sum += buffer[i] * buffer[i];
-  }
-  return Math.sqrt(sum / buffer.length);
-}
-
-/**
- * Check for silence and trigger text injection if needed
- */
-function checkVadSilence() {
-  const now = Date.now();
-  const timeSinceLastAudio = now - vadLastAudioTime;
-  
-  if (timeSinceLastAudio >= vadSilenceThresholdMs) {
-    // Silence detected - inject pending text
-    if (pendingText && pendingText.trim()) {
-      console.log(`[VAD] Silence detected (${timeSinceLastAudio}ms), injecting text: "${pendingText}"`);
-      injectPendingText();
-    }
-    
-    // Reset VAD timer
-    vadLastAudioTime = 0;
-  }
-}
-
-/**
- * Inject pending text and reset state
- */
-function injectPendingText() {
-  if (!pendingText || !pendingText.trim()) {
-    return;
-  }
-  
-  const textToInject = (accumulatedAsrText + " " + pendingText).trim();
-  
-  if (textToInject && textToInject !== accumulatedAsrText.trim()) {
-    console.log(`[VAD] Injecting text: "${textToInject}"`);
-    injectText(textToInject)
-      .then(() => {
-        console.log('[VAD] Text injected successfully');
-      })
-      .catch(err => {
-        console.error('[VAD] Failed to inject text:', err.message);
-      });
-    
-    // Update accumulated text and clear pending
-    accumulatedAsrText = textToInject;
-    pendingText = "";
-  } else {
-    // Just clear pending text
-    pendingText = "";
-  }
-}
-
-/**
- * Start VAD silence detection timer
- */
-function startVadTimer() {
-  stopVadTimer();
-  vadSilenceTimer = setInterval(() => {
-    checkVadSilence();
-  }, 100); // Check every 100ms
-}
-
-/**
- * Stop VAD silence detection timer
- */
-function stopVadTimer() {
-  if (vadSilenceTimer) {
-    clearInterval(vadSilenceTimer);
-    vadSilenceTimer = null;
-  }
-  vadLastAudioTime = 0;
-}
-
 function closeAsrConnection() {
   return new Promise((resolve) => {
     if (!asrWs) {
@@ -603,33 +533,17 @@ function stopHeartbeat() {
 }
 
 function sendAudioChunk(buffer) {
-  // VAD: Calculate audio energy and detect silence
-  const energy = calculateAudioEnergy(buffer);
-  const now = Date.now();
-  
-  if (energy > VAD_ENERGY_THRESHOLD) {
-    // Voice activity detected - update timestamp
-    vadLastAudioTime = now;
-    // _log(`[VAD] Voice detected, energy: ${energy.toFixed(2)}`);
-  } else {
-    // Silence - don't update vadLastAudioTime, let timer detect
-    // _log(`[VAD] Silence detected, energy: ${energy.toFixed(2)}`);
-  }
-
   if (asrWs && asrWs.readyState === WebSocket.OPEN) {
     // Send as binary frame (required by ASR server)
     // buffer is Int16Array, convert to Buffer for WebSocket
     // Note: Need to copy because the ArrayBuffer might be reused
     const bufferToSend = Buffer.from(new Uint8Array(buffer.buffer));
     asrWs.send(bufferToSend, { binary: true });
-    // console.log(`[ASR] Sent audio chunk: ${buffer.length} samples, ${bufferToSend.length} bytes`);
   } else if (asrWs && asrWs.readyState === WebSocket.CONNECTING) {
     // WebSocket is connecting, buffer the audio
     const bufferToQueue = Buffer.from(new Uint8Array(buffer.buffer));
     audioBufferQueue.push(bufferToQueue);
     console.log(`[ASR] Queuing audio chunk, queue size: ${audioBufferQueue.length}`);
-  } else {
-    // console.warn("[ASR] WebSocket not open, cannot send audio chunk");
   }
 }
 
@@ -648,22 +562,19 @@ function registerHotkey() {
       caretTracker.startTracking(100, (caretPos) => {
         positionOverlayAtCaret();
       });
-      // Start VAD silence detection
-      startVadTimer();
       if (win && !win.isDestroyed()) {
         win.webContents.send("asr:recording-started");
       }
     } else {
-      // Stop recording - stop VAD first
-      stopVadTimer();
-      
-      // Inject any remaining text before closing
+      // Stop recording - inject any remaining pending text first
       if (pendingText && pendingText.trim()) {
-        console.log(`[ASR] Stop recording - injecting pending text: "${pendingText}"`);
-        injectPendingText();
+        console.log(`[ASR] Stop recording - injecting remaining text: "${pendingText}"`);
+        const textToInject = (accumulatedAsrText + " " + pendingText).trim();
+        injectText(textToInject)
+          .then(() => console.log('[ASR] Remaining text injected'))
+          .catch(err => console.error('[ASR] Failed to inject remaining text:', err.message));
       }
       
-      // Stop recording - wait for connection to close
       closeAsrConnection().then(() => {
         caretTracker.stopTracking();
         hideOverlayWindow();
@@ -834,7 +745,6 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
-  stopVadTimer();
   closeAsrConnection();
   caretTracker.stopTracking();
   destroyOverlayWindow();

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="..">
+      <UniqueIdentifier>{13ED4249-1F9C-5F0F-2651-29A73F3A7059}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{F1003AD6-4B6D-45DF-3F56-5CAC869BF55E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\asr">
+      <UniqueIdentifier>{70B18970-5D7C-EA9A-50DE-B6B04C831114}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:">
+      <UniqueIdentifier>{86BBDC71-6ACD-FBEF-2BDD-D703B16582D3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\Steve">
+      <UniqueIdentifier>{9743DFB4-6938-8BB9-2F48-352390D16D7E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\Steve\Documents">
+      <UniqueIdentifier>{A6B140C2-EC61-188F-22F2-AD1FFCF65561}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\Steve\Documents\kiri-desktop-pet">
+      <UniqueIdentifier>{AEC3AC84-2A79-5715-47DB-FF9A93CA204C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\Steve\Documents\kiri-desktop-pet\node_modules">
+      <UniqueIdentifier>{126A39EA-1D28-5689-C126-0DA0AB5837A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\Steve\Documents\kiri-desktop-pet\node_modules\node-gyp">
+      <UniqueIdentifier>{49558BB4-6D34-CA91-A65D-85A65792DC11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\Steve\Documents\kiri-desktop-pet\node_modules\node-gyp\src">
+      <UniqueIdentifier>{F1003AD6-4B6D-45DF-3F56-5CAC869BF55E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{13ED4249-1F9C-5F0F-2651-29A73F3A7059}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\asr\win-text-injector.cpp">
+      <Filter>..\src\asr</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Steve\Documents\kiri-desktop-pet\node_modules\node-gyp\src\win_delay_load_hook.cc">
+      <Filter>D:\Steve\Documents\kiri-desktop-pet\node_modules\node-gyp\src</Filter>
+    </ClCompile>
+    <None Include="..\binding.gyp">
+      <Filter>..</Filter>
+    </None>
+  </ItemGroup>
+</Project>
