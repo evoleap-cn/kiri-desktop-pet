@@ -389,6 +389,11 @@ function initAsrConnection() {
           accumulatedAsrText += (accumulatedAsrText ? " " : "") + textToInject;
           pendingText = "";
         }
+        
+        // Hide overlay window after SentenceEnd
+        setTimeout(() => {
+          hideOverlayWindow();
+        }, 500);
       } else if (header.name === "TranscriptionCompleted") {
         // Final result - inject any remaining text
         const text = msg.payload?.result || "";
