@@ -390,10 +390,8 @@ function initAsrConnection() {
           pendingText = "";
         }
         
-        // Hide overlay window after SentenceEnd
-        setTimeout(() => {
-          hideOverlayWindow();
-        }, 500);
+        // Hide overlay window immediately after SentenceEnd
+        hideOverlayWindow();
       } else if (header.name === "TranscriptionCompleted") {
         // Final result - inject any remaining text
         const text = msg.payload?.result || "";
