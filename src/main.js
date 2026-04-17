@@ -331,40 +331,73 @@ function initAsrConnection() {
 
       if (header.name === "TranscriptionStarted") {
         console.log("[ASR] Transcription started successfully");
+        // Reset accumulated text when transcription starts
+        accumulatedAsrText = "";
+        pendingText = "";
       } else if (header.name === "SentenceBegin") {
+        // A new sentence segment has started
+        // If we have pending text from previous segment, inject it
+        if (pendingText && pendingText.trim()) {
+          console.log(`[ASR] SentenceBegin - injecting previous segment: "${pendingText}"`);
+          // Inject previous segment immediately
+          injectText(pendingText)
+            .then(() => {
+              console.log('[ASR] Previous segment injected successfully');
+            })
+            .catch(err => {
+              console.error('[ASR] Failed to inject previous segment:', err.message);
+            });
+          // Add space/separator between segments
+          accumulatedAsrText += " ";
+        }
+        // Start new sentence
+        pendingText = "";
+        
         console.log("[ASR] Sentence begin detected");
         if (win && !win.isDestroyed()) {
           win.webContents.send("asr:sentence-begin");
         }
       } else if (header.name === "TranscriptionResultChanged") {
-        // Partial/intermediate result - update overlay
+        // Partial/intermediate result - accumulate text
         const text = msg.payload?.result || "";
         if (text) {
-          updateOverlayText(text);
+          pendingText = text;
+          const fullText = accumulatedAsrText + text;
+          updateOverlayText(fullText);
           positionOverlayAtCaret();
           if (win && !win.isDestroyed()) {
-            win.webContents.send("asr:partial-result", text);
+            win.webContents.send("asr:partial-result", fullText);
           }
         }
       } else if (header.name === "SentenceEnd") {
-        // End of a sentence - will be followed by TranscriptionCompleted
-        // const text = msg.payload?.result || "";
+        // Current sentence ended, pendingText already contains the text
+        console.log(`[ASR] Sentence ended, current text: "${pendingText}"`);
       } else if (header.name === "TranscriptionCompleted") {
-        // Final result - inject text
+        // Final result - inject any remaining text
         const text = msg.payload?.result || "";
-        if (text) {
-          showFinalText(text);
-          // Inject text using KEYEVENTF_UNICODE
-          injectText(text).catch(err => {
-            console.error("[ASR] Text injection failed:", err.message);
-          });
-          // Hide overlay after a short delay
-          setTimeout(() => {
-            hideOverlayWindow();
-          }, 800);
+        console.log(`[ASR] TranscriptionCompleted received: "${text}"`);
+        asrFinalResultReceived = true;
+        
+        const finalText = (accumulatedAsrText + " " + (text || pendingText)).trim();
+        
+        if (finalText && finalText !== accumulatedAsrText.trim()) {
+          console.log(`[ASR] Injecting final text: "${finalText}"`);
+          injectText(finalText)
+            .then(() => {
+              console.log('[ASR] Final text injected successfully');
+            })
+            .catch(err => {
+              console.error('[ASR] Failed to inject final text:', err.message);
+            });
         }
         if (win && !win.isDestroyed()) {
           win.webContents.send("asr:final-result", text);
+        }
+        
+        // Close connection after receiving final result
+        if (closeResolve) {
+          console.log("[ASR] Final result received, closing connection");
+          finalizeClose();
         }
       } else if (header.name === "TaskFailed") {
         const errorMsg = msg.payload?.status_text || "ASR task failed";
@@ -374,7 +407,7 @@ function initAsrConnection() {
         }
       } else {
         // Debug: log unhandled message types
-        // console.log(`[ASR] Unhandled message type: ${header.name || 'unknown'}`, JSON.stringify(msg, null, 2));
+        console.log(`[ASR] Unhandled message type: ${header.name || 'unknown'}`, JSON.stringify(msg, null, 2));
       }
     } catch (e) {
       console.error(`[ASR] Message parse error: ${e.message}`);
@@ -407,31 +440,150 @@ function initAsrConnection() {
   });
 }
 
-function closeAsrConnection() {
-  if (!asrWs) return;
+// State tracking for ASR
+let asrFinalResultReceived = false;
+let closeResolve = null;
+let accumulatedAsrText = "";  // Accumulate text from sentence segments
+let pendingText = "";         // Current segment text
 
-  stopHeartbeat();
+// VAD (Voice Activity Detection) - Silence detection
+let vadSilenceThresholdMs = 1500;     // 1.5 seconds of silence triggers injection
+let vadSilenceTimer = null;
+let vadLastAudioTime = 0;
+const VAD_ENERGY_THRESHOLD = 50;      // Energy threshold for silence detection (0-32768)
 
-  if (asrWs.readyState === WebSocket.OPEN) {
-    const stopMsg = {
-      header: {
-        namespace: "SpeechTranscriber",
-        name: "StopTranscription"
-      }
-    };
-    asrWs.send(JSON.stringify(stopMsg));
+/**
+ * Calculate audio energy from Int16Array buffer
+ * Returns RMS (Root Mean Square) energy value
+ */
+function calculateAudioEnergy(buffer) {
+  let sum = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    sum += buffer[i] * buffer[i];
   }
+  return Math.sqrt(sum / buffer.length);
+}
 
+/**
+ * Check for silence and trigger text injection if needed
+ */
+function checkVadSilence() {
+  const now = Date.now();
+  const timeSinceLastAudio = now - vadLastAudioTime;
+  
+  if (timeSinceLastAudio >= vadSilenceThresholdMs) {
+    // Silence detected - inject pending text
+    if (pendingText && pendingText.trim()) {
+      console.log(`[VAD] Silence detected (${timeSinceLastAudio}ms), injecting text: "${pendingText}"`);
+      injectPendingText();
+    }
+    
+    // Reset VAD timer
+    vadLastAudioTime = 0;
+  }
+}
+
+/**
+ * Inject pending text and reset state
+ */
+function injectPendingText() {
+  if (!pendingText || !pendingText.trim()) {
+    return;
+  }
+  
+  const textToInject = (accumulatedAsrText + " " + pendingText).trim();
+  
+  if (textToInject && textToInject !== accumulatedAsrText.trim()) {
+    console.log(`[VAD] Injecting text: "${textToInject}"`);
+    injectText(textToInject)
+      .then(() => {
+        console.log('[VAD] Text injected successfully');
+      })
+      .catch(err => {
+        console.error('[VAD] Failed to inject text:', err.message);
+      });
+    
+    // Update accumulated text and clear pending
+    accumulatedAsrText = textToInject;
+    pendingText = "";
+  } else {
+    // Just clear pending text
+    pendingText = "";
+  }
+}
+
+/**
+ * Start VAD silence detection timer
+ */
+function startVadTimer() {
+  stopVadTimer();
+  vadSilenceTimer = setInterval(() => {
+    checkVadSilence();
+  }, 100); // Check every 100ms
+}
+
+/**
+ * Stop VAD silence detection timer
+ */
+function stopVadTimer() {
+  if (vadSilenceTimer) {
+    clearInterval(vadSilenceTimer);
+    vadSilenceTimer = null;
+  }
+  vadLastAudioTime = 0;
+}
+
+function closeAsrConnection() {
+  return new Promise((resolve) => {
+    if (!asrWs) {
+      resolve();
+      return;
+    }
+
+    stopHeartbeat();
+    closeResolve = resolve;
+
+    // Set flag to track when final result is received
+    asrFinalResultReceived = false;
+
+    if (asrWs.readyState === WebSocket.OPEN) {
+      // Send StopTranscription but DON'T close immediately
+      const stopMsg = {
+        header: {
+          namespace: "SpeechTranscriber",
+          name: "StopTranscription"
+        }
+      };
+      asrWs.send(JSON.stringify(stopMsg));
+      console.log("[ASR] StopTranscription sent, waiting for final result...");
+
+      // Wait for final result or timeout
+      setTimeout(() => {
+        if (!asrFinalResultReceived) {
+          console.log("[ASR] Timeout waiting for final result, closing connection");
+        }
+        finalizeClose();
+      }, 2000); // 2 second timeout
+    } else {
+      finalizeClose();
+    }
+  });
+}
+
+function finalizeClose() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
-
-  // Clear any buffered audio
   audioBufferQueue = [];
-
-  asrWs.close();
-  asrWs = null;
+  if (asrWs) {
+    asrWs.close();
+    asrWs = null;
+  }
+  if (closeResolve) {
+    closeResolve();
+    closeResolve = null;
+  }
 }
 
 function startHeartbeat() {
@@ -451,6 +603,19 @@ function stopHeartbeat() {
 }
 
 function sendAudioChunk(buffer) {
+  // VAD: Calculate audio energy and detect silence
+  const energy = calculateAudioEnergy(buffer);
+  const now = Date.now();
+  
+  if (energy > VAD_ENERGY_THRESHOLD) {
+    // Voice activity detected - update timestamp
+    vadLastAudioTime = now;
+    // _log(`[VAD] Voice detected, energy: ${energy.toFixed(2)}`);
+  } else {
+    // Silence - don't update vadLastAudioTime, let timer detect
+    // _log(`[VAD] Silence detected, energy: ${energy.toFixed(2)}`);
+  }
+
   if (asrWs && asrWs.readyState === WebSocket.OPEN) {
     // Send as binary frame (required by ASR server)
     // buffer is Int16Array, convert to Buffer for WebSocket
@@ -464,7 +629,7 @@ function sendAudioChunk(buffer) {
     audioBufferQueue.push(bufferToQueue);
     console.log(`[ASR] Queuing audio chunk, queue size: ${audioBufferQueue.length}`);
   } else {
-    console.warn("[ASR] WebSocket not open, cannot send audio chunk");
+    // console.warn("[ASR] WebSocket not open, cannot send audio chunk");
   }
 }
 
@@ -483,17 +648,29 @@ function registerHotkey() {
       caretTracker.startTracking(100, (caretPos) => {
         positionOverlayAtCaret();
       });
+      // Start VAD silence detection
+      startVadTimer();
       if (win && !win.isDestroyed()) {
         win.webContents.send("asr:recording-started");
       }
     } else {
-      // Stop recording
-      closeAsrConnection();
-      caretTracker.stopTracking();
-      hideOverlayWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send("asr:recording-stopped");
+      // Stop recording - stop VAD first
+      stopVadTimer();
+      
+      // Inject any remaining text before closing
+      if (pendingText && pendingText.trim()) {
+        console.log(`[ASR] Stop recording - injecting pending text: "${pendingText}"`);
+        injectPendingText();
       }
+      
+      // Stop recording - wait for connection to close
+      closeAsrConnection().then(() => {
+        caretTracker.stopTracking();
+        hideOverlayWindow();
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("asr:recording-stopped");
+        }
+      });
     }
   });
 
@@ -657,6 +834,7 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  stopVadTimer();
   closeAsrConnection();
   caretTracker.stopTracking();
   destroyOverlayWindow();

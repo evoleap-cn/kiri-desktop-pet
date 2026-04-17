@@ -1,28 +1,49 @@
 /**
- * 测试 PowerShell 文本注入功能
- * 运行此脚本验证 SendKeys 方案是否正常工作
+ * Test script for Windows Unicode Text Injector
+ * 
+ * This script tests the KEYEVENTF_UNICODE text injection.
+ * Run it and quickly switch to a text input field to see the result.
  */
 
-console.log('测试文本注入功能...\n');
-console.log('请在 3 秒内切换到目标窗口（如记事本、浏览器等）\n');
+const os = require('os');
 
-// 引入 text-injector
-const { injectText, ffiAvailable } = require('./src/asr/text-injector');
+if (os.platform() !== 'win32') {
+  console.log('This test only works on Windows!');
+  process.exit(0);
+}
 
-console.log(`当前使用的方法: ${ffiAvailable ? 'ffi-napi (KEYEVENTF_UNICODE)' : 'PowerShell SendKeys'}\n`);
+const injector = require('./build/Release/win_text_injector.node');
 
-// 延迟 3 秒后开始注入
+console.log('=== Windows Unicode Text Injector Test ===\n');
+
+// Test 1: Send single character
+console.log('Test 1: Sending test character "A" in 3 seconds...');
+console.log('Quick! Switch to a text input field!');
+
 setTimeout(() => {
-  const testText = '你好，世界！Hello World! 123';
+  console.log('\nSending "A"...');
+  const result1 = injector.sendTestChar();
+  console.log(`Result: ${result1 ? 'SUCCESS' : 'FAILED'}`);
   
-  console.log(`准备注入文本: ${testText}`);
-  console.log('开始注入...\n');
+  // Test 2: Send full string
+  console.log('\n\nTest 2: Sending "Hello" in 3 seconds...');
+  console.log('Quick! Switch to a text input field!');
   
-  try {
-    injectText(testText);
-    console.log('\n✓ 文本注入成功！');
-  } catch (err) {
-    console.error('\n✗ 文本注入失败:', err.message);
-    process.exit(1);
-  }
+  setTimeout(() => {
+    console.log('\nSending "Hello"...');
+    const result2 = injector.injectText('Hello');
+    console.log(`Result: ${result2 ? 'SUCCESS' : 'FAILED'}`);
+    
+    // Test 3: Send Chinese text
+    console.log('\n\nTest 3: Sending Chinese text "你好世界" in 3 seconds...');
+    console.log('Quick! Switch to a text input field!');
+    
+    setTimeout(() => {
+      console.log('\nSending "你好世界"...');
+      const result3 = injector.injectText('你好世界');
+      console.log(`Result: ${result3 ? 'SUCCESS' : 'FAILED'}`);
+      
+      console.log('\n=== All tests completed ===');
+    }, 3000);
+  }, 3000);
 }, 3000);
