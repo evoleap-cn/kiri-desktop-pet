@@ -12,16 +12,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openContextMenu: (screenX, screenY) => ipcRenderer.send("open-context-menu", screenX, screenY),
   onPopupClosed: (cb) => ipcRenderer.on("popup-closed", cb),
 
-  // ASR
+  // ASR - New WebSocket-based architecture
+  sendAudioChunk: (buffer) => ipcRenderer.send("asr:send-audio-chunk", buffer),
+  onToggleRecording: (cb) => ipcRenderer.on("asr:recording-started", () => cb(true)).on("asr:recording-stopped", () => cb(false)),
   onAsrPartial: (cb) => ipcRenderer.on("asr:partial-result", (_event, text) => cb(text)),
   onAsrFinal: (cb) => ipcRenderer.on("asr:final-result", (_event, text) => cb(text)),
   onAsrError: (cb) => ipcRenderer.on("asr:error", (_event, msg) => cb(msg)),
-  onAsrRecordingStarted: (cb) => ipcRenderer.on("asr:recording-started", () => cb()),
-  onAsrRecordingStopped: (cb) => ipcRenderer.on("asr:recording-stopped", () => cb()),
   onAsrTextInjected: (cb) => ipcRenderer.on("asr:text-injected", (_event, text) => cb(text)),
-  onAsrStatus: (cb) => ipcRenderer.on("asr:status", (_event, msg) => cb(msg)),
-  onAsrServerReady: (cb) => ipcRenderer.on("asr:server-ready", () => cb()),
+  onAsrConnected: (cb) => ipcRenderer.on("asr:connected", () => cb()),
+  onAsrDisconnected: (cb) => ipcRenderer.on("asr:disconnected", () => cb()),
   getAsrStatus: () => ipcRenderer.invoke("asr:status-request"),
+  
   // Debug: forward renderer logs to main process
   _log: (msg) => ipcRenderer.send("renderer-log", msg),
 });

@@ -2,9 +2,23 @@ const { app, BrowserWindow, screen, Menu, Tray, ipcMain, nativeImage, globalShor
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
-const dgram = require("dgram");
+const WebSocket = require("ws");
+
+// Import ASR modules
+const { injectText } = require("./asr/text-injector");
+const caretTracker = require("./asr/caret-tracker");
 
 const TRAY_ICON_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABN0lEQVR42u1UPWvDMBB9KlnitaR0NdRTMsTQyf/ATSBzJs8l/jshc6bMhX4snjt1yBCDwQGvodC1HdWl8qDYknVKwQa/Ubq79+6ddECPHl1HEIU8iEJOzR/YEAOAN52IIw4A79s3Jsfy75wDAHM8Zi2gghhVQoQYQX4RB4Io5DKxDOmeX2QEdV03AXM8pQsD067XDzda0tXr55kIsoC/R2XkQL4/AABGaaaNvdIFLO5dPkozJLFfFtYhiX0ksV/mK0ekIweA3WZJ3hPLxx0A4OmjYCQHqgqKoiZ35BH8N4wXkWoclFF1zwH5cdk6QBZg8zMaj+D49fNS162JS6KOkYCxe/tsI0ImF/UaLyI54e56ODN1QO48LU5z8i9Q2WgTr1zFdbZRUNV9K/YAaxJk40Rd5z16tAa/5kZ7j/ONvbEAAAAASUVORK5CYII=";
+
+// ─── ASR Configuration ──────────────────────────────────────────────────────
+
+const ASR_CONFIG = {
+  serverUrl: process.env.ASR_SERVER_URL || "ws://192.168.1.66:8000/ws/v1/asr",
+  hotkey: "F9",
+  sampleRate: 16000,
+  heartbeatInterval: 30000, // 30s
+  reconnectDelay: 3000,     // 3s
+};
 
 const PREFS_PATH = path.join(app.getPath("userData"), "evoleap-pet-prefs.json");
 
@@ -40,8 +54,17 @@ const WIN_HEIGHT = 128;
 
 // ─── ASR State ───────────────────────────────────────────────────────────────
 
-let asrProcess = null;   // kiri_bridge.py process
-let asrUdp = null;       // UDP socket listening for status events
+let asrWs = null;              // WebSocket connection to ASR server
+let isRecording = false;        // Current recording state
+let heartbeatTimer = null;      // Heartbeat timer for WebSocket
+let reconnectTimer = null;      // Reconnection timer
+let reconnectAttempts = 0;      // Reconnection attempt counter
+const MAX_RECONNECT_ATTEMPTS = 10;
+let audioBufferQueue = [];      // Queue to buffer audio before WebSocket is ready
+
+// Overlay window for caret-following display
+let overlayWin = null;
+let currentAsrText = "";        // Current streaming text
 
 function clampToScreen(x, y) {
   const displays = screen.getAllDisplays();
@@ -84,6 +107,79 @@ function destroyPopup() {
   if (win && !win.isDestroyed()) {
     win.setIgnoreMouseEvents(false);
     win.webContents.send("popup-closed");
+  }
+}
+
+// ─── ASR Overlay Window ──────────────────────────────────────────────────────
+
+function createOverlayWindow() {
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.show();
+    return;
+  }
+
+  overlayWin = new BrowserWindow({
+    width: 400,
+    height: 60,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    show: false,
+    focusable: false,
+    type: "toolbar",
+    webPreferences: {
+      preload: path.join(__dirname, "overlay-preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  overlayWin.setIgnoreMouseEvents(true, { forward: true });
+  overlayWin.setAlwaysOnTop(true, "screen-saver");
+  overlayWin.loadFile(path.join(__dirname, "overlay-window.html"));
+
+  overlayWin.once("ready-to-show", () => {
+    overlayWin.showInactive();
+  });
+}
+
+function destroyOverlayWindow() {
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.close();
+    overlayWin = null;
+  }
+}
+
+function updateOverlayText(text) {
+  currentAsrText = text;
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.webContents.send("update-text", text);
+  }
+}
+
+function showFinalText(text) {
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.webContents.send("show-final", text);
+  }
+}
+
+function hideOverlayWindow() {
+  if (overlayWin && !overlayWin.isDestroyed()) {
+    overlayWin.webContents.send("hide");
+    // Don't destroy, keep ready for next use
+  }
+}
+
+async function positionOverlayAtCaret() {
+  const caretPos = await caretTracker.getCaretPosition();
+  if (caretPos && overlayWin && !overlayWin.isDestroyed()) {
+    // Position window at caret position (slightly below and to the right)
+    const x = caretPos.x + 5;
+    const y = caretPos.y + caretPos.height + 5;
+    overlayWin.setPosition(x, y);
   }
 }
 
@@ -178,137 +274,233 @@ function createPopup(petWinX, petWinY) {
 
 // ─── ASR Functions ───────────────────────────────────────────────────────────
 
-function initAsrBridge() {
-  if (asrProcess) return;
-
-  const capswriterDir = path.join(__dirname, "..", "CapsWriter-Offline");
-  const bridgePath = path.join(capswriterDir, "kiri_bridge.py");
-  const pythonPath = "python";
-
-  if (!fs.existsSync(bridgePath)) {
-    console.error("[ASR] kiri_bridge.py not found!");
-    if (win && !win.isDestroyed()) win.webContents.send("asr:error", "kiri_bridge.py not found");
+function initAsrConnection() {
+  if (asrWs && (asrWs.readyState === WebSocket.CONNECTING || asrWs.readyState === WebSocket.OPEN)) {
+    console.log("[ASR] Connection already exists");
     return;
   }
 
-  console.log(`[ASR] Starting kiri_bridge.py...`);
+  console.log(`[ASR] Connecting to ${ASR_CONFIG.serverUrl}...`);
+  
+  asrWs = new WebSocket(ASR_CONFIG.serverUrl);
 
-  asrProcess = spawn(pythonPath, ["-u", bridgePath], {
-    cwd: capswriterDir,
-    stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1", KMP_DUPLICATE_LIB_OK: "TRUE" },
-  });
+  asrWs.on("open", () => {
+    console.log("[ASR] WebSocket connected");
+    reconnectAttempts = 0;
 
-  asrProcess.stdout.on("data", (data) => {
-    data.toString().split("\n").filter(l => l.trim()).forEach(line => {
-      console.log(`[ASR] ${line}`);
-    });
-  });
-  asrProcess.stderr.on("data", (data) => {
-    data.toString().split("\n").filter(l => l.trim()).forEach(line => {
-      console.error(`[ASR stderr] ${line}`);
-    });
-  });
-  asrProcess.on("exit", (code) => {
-    console.log(`[ASR] Bridge exited: code=${code}`);
-    asrProcess = null;
-  });
-
-  // ── UDP status listener ──────────────────────────────────────────────────
-  if (asrUdp) { try { asrUdp.close(); } catch {} }
-  asrUdp = dgram.createSocket("udp4");
-
-  asrUdp.on("message", (buf) => {
-    try {
-      const msg = JSON.parse(buf.toString("utf-8"));
-      console.log(`[ASR UDP] ${JSON.stringify(msg)}`);
-      if (!win || win.isDestroyed()) return;
-
-      switch (msg.event) {
-        case "loading":
-          win.webContents.send("asr:status", "正在启动 ASR 服务器，请稍候...");
-          break;
-        case "server_ready":
-          win.webContents.send("asr:status", "ASR 服务器已就绪，正在连接客户端...");
-          break;
-        case "ready":
-          win.webContents.send("asr:server-ready");
-          win.webContents.executeJavaScript("if(window.__hideAsrLoading) window.__hideAsrLoading()");
-          break;
-        case "recording_start":
-          win.webContents.send("asr:recording-started");
-          break;
-        case "recording_stop":
-          win.webContents.send("asr:recording-stopped");
-          break;
-        case "recognized":
-          if (msg.text) {
-            console.log(`[ASR] Recognized: "${msg.text}"`);
-            win.webContents.send("asr:final-result", msg.text);
-          }
-          win.webContents.send("asr:recording-stopped");
-          break;
-        case "error":
-          win.webContents.send("asr:error", msg.message || "ASR error");
-          break;
+    // Send StartTranscription message
+    const startMsg = {
+      header: {
+        namespace: "SpeechTranscriber",
+        name: "StartTranscription",
+        appkey: process.env.ASR_APPKEY || "default"
+      },
+      payload: {
+        format: "pcm",
+        sample_rate: ASR_CONFIG.sampleRate,
+        enable_intermediate_result: true,
+        enable_punctuation_prediction: true,
+        enable_inverse_text_normalization: true
       }
-    } catch (e) {
-      console.error("[ASR UDP] Parse error:", e.message);
+    };
+    asrWs.send(JSON.stringify(startMsg));
+
+    // Send any buffered audio chunks
+    if (audioBufferQueue.length > 0) {
+      console.log(`[ASR] Sending ${audioBufferQueue.length} buffered audio chunks`);
+      for (const bufferedChunk of audioBufferQueue) {
+        asrWs.send(bufferedChunk, { binary: true });
+      }
+      audioBufferQueue = [];
+    }
+
+    // Start heartbeat
+    startHeartbeat();
+
+    // Notify renderer
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("asr:connected");
     }
   });
 
-  asrUdp.on("error", (e) => console.error("[ASR UDP] Error:", e.message));
+  asrWs.on("message", (data, isBinary) => {
+    try {
+      const textData = typeof data === 'string' ? data : data.toString('utf8');
+      const msg = JSON.parse(textData);
+      const header = msg.header || {};
 
-  asrUdp.bind(6019, "127.0.0.1", () => {
-    console.log("[ASR] UDP status listener bound on 127.0.0.1:6019");
+      if (header.name === "TranscriptionStarted") {
+        console.log("[ASR] Transcription started successfully");
+      } else if (header.name === "SentenceBegin") {
+        console.log("[ASR] Sentence begin detected");
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("asr:sentence-begin");
+        }
+      } else if (header.name === "TranscriptionResultChanged") {
+        // Partial/intermediate result - update overlay
+        const text = msg.payload?.result || "";
+        if (text) {
+          updateOverlayText(text);
+          positionOverlayAtCaret();
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("asr:partial-result", text);
+          }
+        }
+      } else if (header.name === "SentenceEnd") {
+        // End of a sentence - will be followed by TranscriptionCompleted
+        // const text = msg.payload?.result || "";
+      } else if (header.name === "TranscriptionCompleted") {
+        // Final result - inject text
+        const text = msg.payload?.result || "";
+        if (text) {
+          showFinalText(text);
+          // Inject text using KEYEVENTF_UNICODE
+          injectText(text).catch(err => {
+            console.error("[ASR] Text injection failed:", err.message);
+          });
+          // Hide overlay after a short delay
+          setTimeout(() => {
+            hideOverlayWindow();
+          }, 800);
+        }
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("asr:final-result", text);
+        }
+      } else if (header.name === "TaskFailed") {
+        const errorMsg = msg.payload?.status_text || "ASR task failed";
+        console.error("[ASR] Task failed:", errorMsg);
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("asr:error", errorMsg);
+        }
+      } else {
+        // Debug: log unhandled message types
+        // console.log(`[ASR] Unhandled message type: ${header.name || 'unknown'}`, JSON.stringify(msg, null, 2));
+      }
+    } catch (e) {
+      console.error(`[ASR] Message parse error: ${e.message}`);
+    }
+  });
+
+  asrWs.on("error", (error) => {
+    console.error("[ASR] WebSocket error:", error.message);
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("asr:error", error.message);
+    }
+  });
+
+  asrWs.on("close", (code, reason) => {
+    console.log(`[ASR] WebSocket closed: code=${code}, reason=${reason}`);
+    stopHeartbeat();
+    
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("asr:disconnected");
+    }
+    
+    // Attempt reconnection if still recording
+    if (isRecording && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      reconnectAttempts++;
+      console.log(`[ASR] Reconnecting... attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+      reconnectTimer = setTimeout(() => {
+        initAsrConnection();
+      }, ASR_CONFIG.reconnectDelay);
+    }
   });
 }
 
-// ─── Text Injection ──────────────────────────────────────────────────────────
-// Note: CapsWriter client handles its own text injection (pynput Ctrl+V).
-// This function is kept for any fallback use cases.
+function closeAsrConnection() {
+  if (!asrWs) return;
 
-function injectText(text) {
-  if (!text || !text.trim()) return;
+  stopHeartbeat();
 
-  try {
-    const prevClipboard = clipboard.readText();
-    clipboard.writeText(text);
+  if (asrWs.readyState === WebSocket.OPEN) {
+    const stopMsg = {
+      header: {
+        namespace: "SpeechTranscriber",
+        name: "StopTranscription"
+      }
+    };
+    asrWs.send(JSON.stringify(stopMsg));
+  }
 
-    // Simulate Ctrl+V via PowerShell SendKeys on Windows
-    if (process.platform === "win32") {
-      const ps = spawn("powershell", [
-        "-NoProfile",
-        "-Command",
-        `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("^v")`
-      ]);
-      ps.on("close", () => {
-        clipboard.writeText(prevClipboard);
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  // Clear any buffered audio
+  audioBufferQueue = [];
+
+  asrWs.close();
+  asrWs = null;
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (asrWs && asrWs.readyState === WebSocket.OPEN) {
+      asrWs.ping(); // WebSocket ping/pong
+    }
+  }, ASR_CONFIG.heartbeatInterval);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+function sendAudioChunk(buffer) {
+  if (asrWs && asrWs.readyState === WebSocket.OPEN) {
+    // Send as binary frame (required by ASR server)
+    // buffer is Int16Array, convert to Buffer for WebSocket
+    // Note: Need to copy because the ArrayBuffer might be reused
+    const bufferToSend = Buffer.from(new Uint8Array(buffer.buffer));
+    asrWs.send(bufferToSend, { binary: true });
+    // console.log(`[ASR] Sent audio chunk: ${buffer.length} samples, ${bufferToSend.length} bytes`);
+  } else if (asrWs && asrWs.readyState === WebSocket.CONNECTING) {
+    // WebSocket is connecting, buffer the audio
+    const bufferToQueue = Buffer.from(new Uint8Array(buffer.buffer));
+    audioBufferQueue.push(bufferToQueue);
+    console.log(`[ASR] Queuing audio chunk, queue size: ${audioBufferQueue.length}`);
+  } else {
+    console.warn("[ASR] WebSocket not open, cannot send audio chunk");
+  }
+}
+
+// ─── Hotkey Handler ──────────────────────────────────────────────────────────
+
+function registerHotkey() {
+  const ret = globalShortcut.register(ASR_CONFIG.hotkey, () => {
+    console.log(`[ASR] Hotkey ${ASR_CONFIG.hotkey} pressed`);
+    isRecording = !isRecording;
+
+    if (isRecording) {
+      // Start recording
+      initAsrConnection();
+      createOverlayWindow();
+      // Start caret tracking
+      caretTracker.startTracking(100, (caretPos) => {
+        positionOverlayAtCaret();
       });
-    } else if (process.platform === "darwin") {
-      try {
-        require("child_process").execSync(
-          `osascript -e 'tell application "System Events" to keystroke "v" using command down'`
-        );
-      } catch {}
-      clipboard.writeText(prevClipboard);
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("asr:recording-started");
+      }
     } else {
-      try {
-        require("child_process").execSync("xdotool key ctrl+v");
-      } catch {}
-      clipboard.writeText(prevClipboard);
+      // Stop recording
+      closeAsrConnection();
+      caretTracker.stopTracking();
+      hideOverlayWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("asr:recording-stopped");
+      }
     }
+  });
 
-    if (win && !win.isDestroyed()) {
-      win.webContents.send("asr:text-injected", text);
-    }
-    console.log("[ASR] Text injected:", text);
-  } catch (err) {
-    console.error("[ASR] Text injection failed:", err.message);
-    clipboard.writeText(text);
-    if (win && !win.isDestroyed()) {
-      win.webContents.send("asr:text-injected", text);
-    }
+  if (!ret) {
+    console.error(`[ASR] Failed to register hotkey: ${ASR_CONFIG.hotkey}`);
+  } else {
+    console.log(`[ASR] Hotkey ${ASR_CONFIG.hotkey} registered`);
   }
 }
 
@@ -433,10 +625,12 @@ function createWindow() {
     });
 
     // ─── ASR IPC handlers ──────────────────────────────────────────────────
-    // Recording is fully managed by CapsWriter Python client (CapsLock key).
-    // Node only handles status queries.
     ipcMain.handle("asr:status-request", () => {
-      return asrProcess ? "running" : "not_initialized";
+      return asrWs && asrWs.readyState === WebSocket.OPEN ? "connected" : "disconnected";
+    });
+
+    ipcMain.on("asr:send-audio-chunk", (_event, buffer) => {
+      sendAudioChunk(buffer);
     });
 
     ipcHandlersRegistered = true;
@@ -448,9 +642,9 @@ function createWindow() {
 app.whenReady().then(async () => {
   createWindow();
 
-  // Start CapsWriter bridge (server + client) on app startup
-  console.log("[ASR] Starting CapsWriter bridge...");
-  initAsrBridge();
+  // Register F9 hotkey for ASR recording
+  console.log("[ASR] Registering hotkey F9...");
+  registerHotkey();
 
   app.on("activate", () => {
     if (!win || win.isDestroyed()) createWindow();
@@ -463,17 +657,8 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
-  if (asrProcess) {
-    try {
-      if (process.platform === "win32") {
-        // /t kills the entire process tree (bridge + server + client)
-        spawn("taskkill", ["/pid", asrProcess.pid, "/f", "/t"]);
-      } else {
-        asrProcess.kill("SIGTERM");
-      }
-    } catch {}
-    asrProcess = null;
-  }
-  if (asrUdp) { try { asrUdp.close(); } catch {} asrUdp = null; }
+  closeAsrConnection();
+  caretTracker.stopTracking();
+  destroyOverlayWindow();
   globalShortcut.unregisterAll();
 });

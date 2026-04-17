@@ -60,7 +60,6 @@ function setIgnore(ignore) {
 window.addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
   if (!isOpaqueAt(e.clientX, e.clientY)) return;
-  // Record pet's screen position for menu positioning
   petScreenX = e.screenX;
   petScreenY = e.screenY;
   isDragging = false;
@@ -122,18 +121,22 @@ window.addEventListener("mouseleave", () => {
   if (!isDragging) setIgnore(true);
 });
 
-// Right-click opens native context menu
 window.addEventListener("contextmenu", (e) => {
   e.preventDefault();
   window.electronAPI.openContextMenu(e.screenX, e.screenY);
 });
 
-// When popup closes, reset lastIgnore so the next mouse event always re-evaluates
 window.electronAPI.onPopupClosed(() => {
   lastIgnore = null;
 });
 
-// ─── ASR Overlay ─────────────────────────────────────────────────────────────
+// ─── ASR Audio Recording with AudioWorklet ───────────────────────────────────
+
+let audioContext = null;
+let mediaStream = null;
+let sourceNode = null;
+let pcmProcessor = null;
+let isRecording = false;
 
 const asrOverlay = document.getElementById("asr-overlay");
 const asrDot = document.getElementById("asr-dot");
@@ -145,31 +148,79 @@ const asrLoading = document.getElementById("asr-loading");
 
 let asrActive = false;
 let injectFlashTimeout = null;
-let asrLoadingVisible = false;
-
-function showLoading(label) {
-  if (!asrLoading || asrLoadingVisible) return;
-  asrLoading.classList.remove("hidden");
-  asrLoadingVisible = true;
-  if (label) {
-    const labelEl = asrLoading.querySelector(".label");
-    if (labelEl) labelEl.textContent = label;
-  }
-}
-
-function hideLoading() {
-  if (!asrLoading) return;
-  asrLoading.classList.add("hidden");
-  asrLoadingVisible = false;
-  console.log("[Renderer] hideLoading() called, element:", asrLoading, "classes:", asrLoading.className);
-}
-
-// Expose to global for main process executeJavaScript fallback
-window.__hideAsrLoading = hideLoading;
 
 function _log(msg) {
   try { window.electronAPI._log(msg); } catch {}
 }
+
+async function initAudioContext() {
+  if (audioContext) return;
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        channelCount: 1,
+        sampleRate: 16000,
+        echoCancellation: true,
+        noiseSuppression: true
+      } 
+    });
+    _log("[ASR] Microphone permission granted");
+  } catch (err) {
+    _log(`[ASR] Microphone permission denied: ${err.message}`);
+    showAsrError("麦克风权限被拒绝");
+    throw err;
+  }
+
+  audioContext = new AudioContext({ sampleRate: 16000 });
+  await audioContext.audioWorklet.addModule('pcm-processor.js');
+  _log("[ASR] AudioWorklet module loaded");
+}
+
+async function startRecording() {
+  if (isRecording) return;
+
+  try {
+    await initAudioContext();
+
+    sourceNode = audioContext.createMediaStreamSource(mediaStream);
+    pcmProcessor = new AudioWorkletNode(audioContext, 'pcm-processor');
+
+    pcmProcessor.port.onmessage = (event) => {
+      const pcmBuffer = event.data;
+      // _log(`[ASR] Sending audio chunk: ${pcmBuffer.length} samples`);
+      window.electronAPI.sendAudioChunk(pcmBuffer);
+    };
+
+    sourceNode.connect(pcmProcessor);
+
+    isRecording = true;
+    _log("[ASR] Recording started");
+  } catch (err) {
+    _log(`[ASR] Failed to start recording: ${err.message}`);
+    showAsrError(`启动录音失败: ${err.message}`);
+  }
+}
+
+function stopRecording() {
+  if (!isRecording) return;
+  
+  if (sourceNode) {
+    sourceNode.disconnect();
+    sourceNode = null;
+  }
+  
+  if (pcmProcessor) {
+    pcmProcessor.port.onmessage = null;
+    pcmProcessor.disconnect();
+    pcmProcessor = null;
+  }
+  
+  isRecording = false;
+  _log("[ASR] Recording stopped");
+}
+
+// ─── ASR UI Functions ────────────────────────────────────────────────────────
 
 function showAsrOverlay() {
   asrOverlay.classList.add("visible");
@@ -214,67 +265,36 @@ function showAsrStatus(msg) {
   asrStatus.textContent = msg;
   asrStatus.style.display = "block";
   asrError.style.display = "none";
-  // Auto-hide status after 5 seconds
   setTimeout(() => {
     if (asrStatus) asrStatus.style.display = "none";
   }, 5000);
 }
 
-// ─── ASR IPC Events ──────────────────────────────────────────────────────────
+function showLoading(label) {
+  if (!asrLoading) return;
+  asrLoading.classList.remove("hidden");
+  const labelEl = asrLoading.querySelector(".label");
+  if (labelEl) labelEl.textContent = label;
+}
 
-// Recording overlay: red pulsing ring when CapsWriter is recording
-let recordingOverlay = null;
+function hideLoading() {
+  if (!asrLoading) return;
+  asrLoading.classList.add("hidden");
+}
 
-function showRecordingOverlay() {
-  if (!recordingOverlay) {
-    recordingOverlay = document.createElement("div");
-    recordingOverlay.id = "recording-overlay";
-    recordingOverlay.style.cssText = `
-      position: fixed; top: 24px; left: 24px;
-      width: 80px; height: 80px;
-      border-radius: 20px;
-      background: transparent;
-      box-sizing: border-box;
-      z-index: 10001;
-      pointer-events: none;
-      animation: siri-glow 3s linear infinite;
-    `;
-    if (!document.getElementById("recording-overlay-style")) {
-      const style = document.createElement("style");
-      style.id = "recording-overlay-style";
-      style.textContent = `
-        @keyframes siri-glow {
-          0%   { box-shadow: 0 0 0 2.5px #ff3cac, 0 0 14px 4px rgba(255,60,172,0.55); }
-          14%  { box-shadow: 0 0 0 2.5px #ff8c00, 0 0 14px 4px rgba(255,140,0,0.55); }
-          28%  { box-shadow: 0 0 0 2.5px #ffe000, 0 0 14px 4px rgba(255,224,0,0.55); }
-          42%  { box-shadow: 0 0 0 2.5px #40e0d0, 0 0 14px 4px rgba(64,224,208,0.55); }
-          57%  { box-shadow: 0 0 0 2.5px #00b4ff, 0 0 14px 4px rgba(0,180,255,0.55); }
-          71%  { box-shadow: 0 0 0 2.5px #9b59ff, 0 0 14px 4px rgba(155,89,255,0.55); }
-          85%  { box-shadow: 0 0 0 2.5px #ff3cac, 0 0 14px 4px rgba(255,60,172,0.55); }
-          100% { box-shadow: 0 0 0 2.5px #ff3cac, 0 0 14px 4px rgba(255,60,172,0.55); }
-        }
-      `;
-      document.head.appendChild(style);
+// ─── ASR IPC Event Listeners ─────────────────────────────────────────────────
+
+window.electronAPI.onToggleRecording((recording) => {
+  if (recording) {
+    showLoading("正在录音...");
+    showAsrOverlay();
+    startRecording();
+  } else {
+    hideLoading();
+    stopRecording();
+    if (asrActive) {
+      flashInjected();
     }
-    document.body.appendChild(recordingOverlay);
-  }
-  recordingOverlay.style.display = "block";
-}
-
-function hideRecordingOverlay() {
-  if (recordingOverlay) recordingOverlay.style.display = "none";
-}
-
-window.electronAPI.onAsrRecordingStarted(() => {
-  hideLoading();
-  showRecordingOverlay();
-  showAsrOverlay();
-});
-
-window.electronAPI.onAsrRecordingStopped(() => {
-  hideRecordingOverlay();
-  if (asrActive) {
-    flashInjected();
   }
 });
 
@@ -303,20 +323,11 @@ window.electronAPI.onAsrTextInjected(() => {
   flashInjected();
 });
 
-window.electronAPI.onAsrStatus((msg) => {
-  console.log(`[Renderer] asr:status received: "${msg}"`);
-  showAsrStatus(msg);
-  // If status mentions loading, show spinner overlay
-  if (msg.includes("正在启动") || msg.includes("等待") || msg.includes("Loading") || msg.includes("正在加载")) {
-    showLoading("加载中...");
-  } else if (msg.includes("就绪") || msg.includes("Ready")) {
-    console.log("[Renderer] Hiding loading spinner (server ready)");
-    hideLoading();
-  }
+window.electronAPI.onAsrConnected(() => {
+  _log("[ASR] WebSocket connected");
+  hideLoading();
 });
 
-// Direct signal: WS connected → hide spinner immediately
-window.electronAPI.onAsrServerReady(() => {
-  console.log("[Renderer] asr:server-ready event received, hiding spinner");
-  hideLoading();
+window.electronAPI.onAsrDisconnected(() => {
+  _log("[ASR] WebSocket disconnected");
 });

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self'">
   <title>EvoLeap Pet</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,7 +12,6 @@
       background: transparent;
       overflow: hidden;
       user-select: none;
-      /* 8px padding on all sides — gives room for glow effects */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -36,7 +35,7 @@
     #asr-overlay {
       position: fixed;
       left: 0;
-      top: 104px;   /* 24px padding + 80px SVG */
+      top: 104px;
       width: 100vw;
       pointer-events: none;
       opacity: 0;
@@ -128,7 +127,7 @@
       display: none;
     }
 
-    /* ─── Loading spinner overlaid on pet ─────────────────────── */
+    /* Loading spinner overlaid on pet */
     #asr-loading {
       position: fixed;
       top: 24px;
@@ -175,7 +174,7 @@
 <body>
   <div id="pet"></div>
 
-  <div id="asr-loading">
+  <div id="asr-loading" class="hidden">
     <div class="spinner"></div>
     <div class="label">Loading ASR...</div>
   </div>
