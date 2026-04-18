@@ -331,6 +331,7 @@ window.electronAPI.onAsrTextInjected(() => {
 window.electronAPI.onAsrConnected(() => {
   _log("[ASR] WebSocket connected");
   hideLoading();
+  hideAsrOverlay();
   // Clear any status message
   if (asrStatus) {
     asrStatus.style.display = "none";
