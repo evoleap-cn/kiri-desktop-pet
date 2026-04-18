@@ -145,6 +145,7 @@ const asrText = document.getElementById("asr-text");
 const asrError = document.getElementById("asr-error");
 const asrStatus = document.getElementById("asr-status");
 const asrLoading = document.getElementById("asr-loading");
+const petGlow = document.getElementById("pet-glow");
 
 let asrActive = false;
 let injectFlashTimeout = null;
@@ -289,9 +290,11 @@ window.electronAPI.onToggleRecording((recording) => {
     showLoading("正在录音...");
     showAsrOverlay();
     startRecording();
+    petGlow.classList.add('recording');
   } else {
     hideLoading();
     stopRecording();
+    petGlow.classList.remove('recording');
     if (asrActive) {
       flashInjected();
     }

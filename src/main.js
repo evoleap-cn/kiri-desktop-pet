@@ -54,8 +54,8 @@ let tray = null;
 let isQuitting = false;
 let ipcHandlersRegistered = false;
 
-const WIN_WIDTH = 128;
-const WIN_HEIGHT = 128;
+const WIN_WIDTH = 160;
+const WIN_HEIGHT = 160;
 
 // ─── ASR State ───────────────────────────────────────────────────────────────
 
