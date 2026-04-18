@@ -8,12 +8,16 @@
       "conditions": [
         ["OS=='win'", {
           "libraries": [
-            "-luser32"
+            "-luser32",
+            "-lole32",
+            "-loleaut32",
+            "-luiautomationcore"
           ],
           "defines": [
             "UNICODE",
             "_UNICODE",
-            "WIN32_LEAN_AND_MEAN"
+            "WIN32_LEAN_AND_MEAN",
+            "NOMINMAX"
           ],
           "msvs_settings": {
             "VCCLCompilerTool": {

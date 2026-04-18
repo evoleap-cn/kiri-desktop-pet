@@ -177,13 +177,29 @@ function hideOverlayWindow() {
   }
 }
 
+// Track last logged caret position to suppress duplicate logs
+let lastLoggedCaretPos = null;
+
 async function positionOverlayAtCaret() {
   const caretPos = await caretTracker.getCaretPosition();
+
+  // Only log when position changes
+  const posKey = caretPos ? `${caretPos.x},${caretPos.y},${caretPos.width},${caretPos.height}` : 'null';
+  if (posKey !== lastLoggedCaretPos) {
+    lastLoggedCaretPos = posKey;
+    console.log('[CaretTracker] getCaretPosition result:', caretPos);
+  }
+
   if (caretPos && overlayWin && !overlayWin.isDestroyed()) {
     // Position window at caret position (slightly below and to the right)
     const x = caretPos.x + 5;
     const y = caretPos.y + caretPos.height + 5;
     overlayWin.setPosition(x, y);
+  } else {
+    if (posKey !== lastLoggedCaretPos) {
+      lastLoggedCaretPos = posKey;
+      console.log('[CaretTracker] Cannot position overlay - caretPos:', !!caretPos, 'overlayWin:', !!overlayWin);
+    }
   }
 }
 
