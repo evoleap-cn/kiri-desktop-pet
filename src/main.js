@@ -4,6 +4,11 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 const WebSocket = require("ws");
 
+// Enable high DPI support for multi-monitor configurations
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch('high-dpi-support', 'true');
+}
+
 // Import ASR modules
 const { injectText } = require("./asr/text-injector");
 const caretTracker = require("./asr/caret-tracker");
@@ -191,9 +196,12 @@ async function positionOverlayAtCaret() {
   }
 
   if (caretPos && overlayWin && !overlayWin.isDestroyed()) {
-    // Position window at caret position (slightly below and to the right)
-    const x = caretPos.x + 5;
-    const y = caretPos.y + caretPos.height + 5;
+    // WinAPI (both UIA and GetGUIThreadInfo paths) returns physical pixel coordinates.
+    // Electron's setPosition() expects logical (DIP) coordinates, so convert first.
+    // screen.screenToDipPoint handles any multi-monitor arrangement correctly.
+    const logicalPos = screen.screenToDipPoint({ x: caretPos.x, y: caretPos.y + caretPos.height });
+    const x = Math.round(logicalPos.x) + 5;
+    const y = Math.round(logicalPos.y) + 5;
     overlayWin.setPosition(x, y);
   } else {
     if (posKey !== lastLoggedCaretPos) {
