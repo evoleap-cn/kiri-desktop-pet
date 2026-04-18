@@ -326,8 +326,17 @@ window.electronAPI.onAsrTextInjected(() => {
 window.electronAPI.onAsrConnected(() => {
   _log("[ASR] WebSocket connected");
   hideLoading();
+  // Clear any status message
+  if (asrStatus) {
+    asrStatus.style.display = "none";
+  }
 });
 
 window.electronAPI.onAsrDisconnected(() => {
   _log("[ASR] WebSocket disconnected");
+});
+
+window.electronAPI.onAsrStatus((msg) => {
+  _log(`[ASR] Status: ${msg}`);
+  showAsrStatus(msg);
 });

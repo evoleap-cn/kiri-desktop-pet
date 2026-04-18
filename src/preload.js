@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onAsrTextInjected: (cb) => ipcRenderer.on("asr:text-injected", (_event, text) => cb(text)),
   onAsrConnected: (cb) => ipcRenderer.on("asr:connected", () => cb()),
   onAsrDisconnected: (cb) => ipcRenderer.on("asr:disconnected", () => cb()),
+  onAsrStatus: (cb) => ipcRenderer.on("asr:status", (_event, msg) => cb(msg)),
   getAsrStatus: () => ipcRenderer.invoke("asr:status-request"),
   
   // Debug: forward renderer logs to main process

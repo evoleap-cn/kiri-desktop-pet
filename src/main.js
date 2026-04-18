@@ -442,21 +442,32 @@ function initAsrConnection() {
     console.error("[ASR] WebSocket error:", error.message);
     if (win && !win.isDestroyed()) {
       win.webContents.send("asr:error", error.message);
+      // Show connection quality warning before connection succeeds
+      if (reconnectAttempts === 0) {
+        win.webContents.send("asr:status", "连接质量差，正在尝试重连...");
+      }
     }
   });
 
   asrWs.on("close", (code, reason) => {
     console.log(`[ASR] WebSocket closed: code=${code}, reason=${reason}`);
     stopHeartbeat();
-    
+
     if (win && !win.isDestroyed()) {
       win.webContents.send("asr:disconnected");
+      // Show connection quality warning during reconnection
+      if (isRecording && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        win.webContents.send("asr:status", "连接已断开，正在重连...");
+      }
     }
-    
+
     // Attempt reconnection if still recording
     if (isRecording && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
       reconnectAttempts++;
       console.log(`[ASR] Reconnecting... attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("asr:status", `正在重连 (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+      }
       reconnectTimer = setTimeout(() => {
         initAsrConnection();
       }, ASR_CONFIG.reconnectDelay);
