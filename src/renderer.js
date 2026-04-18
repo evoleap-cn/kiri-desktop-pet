@@ -225,8 +225,6 @@ function showAsrOverlay() {
   asrOverlay.classList.add("visible");
   asrDot.classList.remove("done");
   asrLabel.textContent = "Recording...";
-  asrText.textContent = "";
-  asrText.classList.remove("injected");
   asrError.style.display = "none";
   if (asrStatus) asrStatus.style.display = "none";
   asrActive = true;

@@ -745,7 +745,15 @@ function createWindow() {
   win.showInactive();
   win.moveTop();
 
-  win.on("moved", savePrefs);
+  win.on("move", () => {
+    savePrefs();
+    if (asrTextWin && !asrTextWin.isDestroyed()) {
+      const petBounds = win.getBounds();
+      const x = petBounds.x + Math.round((petBounds.width - 300) / 2);
+      const y = petBounds.y + petBounds.height + 10;
+      asrTextWin.setPosition(x, y);
+    }
+  });
   win.on("closed", () => {
     destroyPopup();
     win = null;
