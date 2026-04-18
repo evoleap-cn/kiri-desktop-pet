@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
+  <title></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+    }
+    #menu {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #f6f6f8;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+      padding: 8px 0 6px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 15px;
+      color: #1d1d1f;
+      animation: menuFadeIn 0.15s ease-out;
+      display: flex;
+      flex-direction: column;
+    }
+    @keyframes menuFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .menu-items {
+      flex: 1;
+      overflow: hidden;
+    }
+    .pet-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      cursor: pointer;
+      transition: background 0.12s;
+      white-space: nowrap;
+    }
+    .pet-menu-item:hover {
+      background: rgba(0,0,0,0.06);
+    }
+    .pet-menu-item svg {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      color: #424245;
+    }
+    .pet-menu-sep {
+      height: 1px;
+      background: rgba(0,0,0,0.08);
+      margin: 4px 16px;
+    }
+    #pet-search-bar {
+      margin: 4px 10px 6px;
+      display: flex;
+      align-items: center;
+      background: #e8e8ec;
+      border-radius: 22px;
+      padding: 0 14px;
+      height: 36px;
+      gap: 8px;
+    }
+    #pet-search-bar input {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 14px;
+      color: #1d1d1f;
+      width: 100%;
+      font-family: inherit;
+    }
+    #pet-search-bar input::placeholder {
+      color: #8e8e93;
+    }
+    #pet-search-bar .search-icon {
+      width: 18px;
+      height: 18px;
+      color: #8e8e93;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="menu">
+    <div class="menu-items">
+      <div class="pet-menu-item" data-action="Evo快捷框">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <span>Evo快捷框</span>
+      </div>
+      <div class="pet-menu-item" data-action="Evo读屏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        <span>Evo读屏</span>
+      </div>
+      <div class="pet-menu-item" data-action="Evo网盘">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <span>Evo网盘</span>
+      </div>
+      <div class="pet-menu-item" data-action="录音纪要">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span>录音纪要</span>
+      </div>
+      <div class="pet-menu-item" data-action="截屏提问">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg>
+        <span>截屏提问</span>
+      </div>
+    </div>
+    <div class="pet-menu-sep"></div>
+    <div id="pet-search-bar">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="向Evo提问" id="pet-search-input" />
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
