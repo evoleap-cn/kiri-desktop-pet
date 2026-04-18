@@ -287,9 +287,12 @@ function hideLoading() {
 
 // ─── ASR IPC Event Listeners ─────────────────────────────────────────────────
 
+window.electronAPI.onAsrConnecting(() => {
+  showLoading("正在连接...");
+});
+
 window.electronAPI.onToggleRecording((recording) => {
   if (recording) {
-    showLoading("正在录音...");
     showAsrOverlay();
     startRecording();
     petGlow.classList.add('recording');
@@ -299,7 +302,6 @@ window.electronAPI.onToggleRecording((recording) => {
     stopRecording();
     petGlow.classList.remove('recording');
     asrActive = false;
-    // Don't call flashInjected() here - stop is immediate, not an injection event
   }
 });
 
@@ -331,8 +333,6 @@ window.electronAPI.onAsrTextInjected(() => {
 window.electronAPI.onAsrConnected(() => {
   _log("[ASR] WebSocket connected");
   hideLoading();
-  hideAsrOverlay();
-  // Clear any status message
   if (asrStatus) {
     asrStatus.style.display = "none";
   }

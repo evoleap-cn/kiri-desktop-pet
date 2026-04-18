@@ -428,6 +428,11 @@ function initAsrConnection() {
         // Reset accumulated text when transcription starts
         accumulatedAsrText = "";
         pendingText = "";
+        
+        // Notify renderer that recording is now active
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("asr:recording-started");
+        }
       } else if (header.name === "SentenceBegin") {
         // A new sentence segment has started
         // If we have pending text from previous segment, inject it
@@ -477,6 +482,10 @@ function initAsrConnection() {
             .then(() => {
               console.log('[ASR] SentenceEnd text injected successfully');
               flashAsrTextInjected();
+              // Notify renderer to show Injected state (overrides Recording)
+              if (win && !win.isDestroyed()) {
+                win.webContents.send("asr:text-injected");
+              }
             })
             .catch(err => {
               console.error('[ASR] Failed to inject SentenceEnd text:', err.message);
@@ -665,6 +674,10 @@ function registerHotkey() {
     isRecording = !isRecording;
 
     if (isRecording) {
+      // Notify renderer immediately so it can show loading before connection
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("asr:connecting");
+      }
       // Start recording
       initAsrConnection();
       createOverlayWindow();
@@ -673,11 +686,12 @@ function registerHotkey() {
       caretTracker.startTracking(100, (caretPos) => {
         positionOverlayAtCaret();
       });
-      if (win && !win.isDestroyed()) {
-        win.webContents.send("asr:recording-started");
-      }
+      // recording-started will be sent when TranscriptionStarted is received
     } else {
-      // Stop recording - inject any remaining pending text first
+      // Stop recording - immediate shutdown
+      console.log('[ASR] Stopping recording - immediate shutdown');
+      
+      // Inject any remaining pending text first
       if (pendingText && pendingText.trim()) {
         console.log(`[ASR] Stop recording - injecting remaining text: "${pendingText}"`);
         const textToInject = (accumulatedAsrText + " " + pendingText).trim();
@@ -686,14 +700,43 @@ function registerHotkey() {
           .catch(err => console.error('[ASR] Failed to inject remaining text:', err.message));
       }
 
-      closeAsrConnection().then(() => {
-        caretTracker.stopTracking();
-        hideOverlayWindow();
-        destroyAsrTextWindow();
-        if (win && !win.isDestroyed()) {
-          win.webContents.send("asr:recording-stopped");
+      // Immediately close connection without waiting for server
+      if (asrWs) {
+        stopHeartbeat();
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
         }
-      });
+        audioBufferQueue = [];
+        if (asrWs.readyState === WebSocket.OPEN) {
+          // Send StopTranscription but don't wait
+          const stopMsg = {
+            header: {
+              namespace: "SpeechTranscriber",
+              name: "StopTranscription"
+            }
+          };
+          asrWs.send(JSON.stringify(stopMsg));
+        }
+        asrWs.close();
+        asrWs = null;
+      }
+      
+      // Reset state
+      isRecording = false;
+      accumulatedAsrText = "";
+      pendingText = "";
+      asrFinalResultReceived = false;
+      reconnectAttempts = 0;
+      
+      // Stop UI tracking immediately
+      caretTracker.stopTracking();
+      hideOverlayWindow();
+      destroyAsrTextWindow();
+      
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("asr:recording-stopped");
+      }
     }
   });
 

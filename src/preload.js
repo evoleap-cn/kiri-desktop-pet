@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // ASR - New WebSocket-based architecture
   sendAudioChunk: (buffer) => ipcRenderer.send("asr:send-audio-chunk", buffer),
+  onAsrConnecting: (cb) => ipcRenderer.on("asr:connecting", () => cb()),
   onToggleRecording: (cb) => ipcRenderer.on("asr:recording-started", () => cb(true)).on("asr:recording-stopped", () => cb(false)),
   onAsrPartial: (cb) => ipcRenderer.on("asr:partial-result", (_event, text) => cb(text)),
   onAsrFinal: (cb) => ipcRenderer.on("asr:final-result", (_event, text) => cb(text)),
