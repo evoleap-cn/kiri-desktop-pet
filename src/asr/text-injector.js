@@ -8,15 +8,15 @@
 
 const os = require('os');
 const path = require('path');
+const build = require('node-gyp-build');
 
 // Try to load native Windows text injector
 let nativeInjector = null;
 try {
   if (os.platform() === 'win32') {
-    // Use absolute path relative to this file
-    const injectorPath = path.join(__dirname, '..', '..', 'build', 'Release', 'win_text_injector.node');
-    console.log('[TextInjector] Trying to load native injector from:', injectorPath);
-    nativeInjector = require(injectorPath);
+    console.log('[TextInjector] Trying to load native injector using node-gyp-build...');
+    // node-gyp-build automatically searches prebuilds/ and build/ directories
+    nativeInjector = build(path.join(__dirname, '..', '..'));
     console.log('[TextInjector] Native Windows injector loaded successfully');
   }
 } catch (err) {

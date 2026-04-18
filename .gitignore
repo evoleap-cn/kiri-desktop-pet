@@ -17,3 +17,6 @@ clawd-tank/
 
 # Debug logs
 logs/
+
+# Native addon build output (ignore build/ but keep prebuilds/)
+build/
