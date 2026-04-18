@@ -1,7 +1,5 @@
 const SVG_MARKUP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><style>.cls-1{fill:#fff;}.cls-2{fill:#235ceb;}</style></defs><g id="图层_2" data-name="图层 2"><g id="图层_1-2" data-name="图层 1"><rect class="cls-1" width="512" height="512" rx="128"/></g><g id="图层_2-2" data-name="图层 2"><polygon class="cls-2" points="242.86 208.88 385.45 208.88 385.45 308.7 242.86 308.7 242.86 346.12 385.45 346.12 385.45 445.94 242.86 445.94 242.86 445.96 143.68 445.96 143.68 71.61 242.86 71.61 242.86 208.88"/><rect class="cls-2" x="286.27" y="71.61" width="99.18" height="99.82"/></g></g></svg>`;
 
-const PAD_X = 8;
-const PAD_Y = 8;
 const SVG_W = 80;
 const SVG_H = 80;
 
@@ -26,8 +24,9 @@ function buildHitCanvas() {
 
 function isOpaqueAt(winX, winY) {
   if (!hitCtx) return true;
-  const svgX = winX - PAD_X;
-  const svgY = winY - PAD_Y;
+  const petRect = pet.getBoundingClientRect();
+  const svgX = winX - petRect.left;
+  const svgY = winY - petRect.top;
   if (svgX < 0 || svgY < 0 || svgX >= SVG_W || svgY >= SVG_H) return false;
   const pixel = hitCtx.getImageData(Math.floor(svgX), Math.floor(svgY), 1, 1).data;
   return pixel[3] > 10;
