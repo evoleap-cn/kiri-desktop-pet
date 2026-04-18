@@ -71,6 +71,72 @@ let audioBufferQueue = [];      // Queue to buffer audio before WebSocket is rea
 let overlayWin = null;
 let currentAsrText = "";        // Current streaming text
 
+// ASR Text Window - shows recognized text below pet
+let asrTextWin = null;
+
+function createAsrTextWindow() {
+  if (asrTextWin && !asrTextWin.isDestroyed()) {
+    asrTextWin.show();
+    return;
+  }
+
+  const TEXT_WIN_WIDTH = 300;
+  const TEXT_WIN_HEIGHT = 60;
+
+  asrTextWin = new BrowserWindow({
+    width: TEXT_WIN_WIDTH,
+    height: TEXT_WIN_HEIGHT,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    show: false,
+    focusable: false,
+    type: "toolbar",
+    webPreferences: {
+      preload: path.join(__dirname, "asr-text-preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  asrTextWin.setIgnoreMouseEvents(true, { forward: true });
+  asrTextWin.setAlwaysOnTop(true, "screen-saver");
+  asrTextWin.loadFile(path.join(__dirname, "asr-text-window.html"));
+
+  asrTextWin.once("ready-to-show", () => {
+    // Position below pet window
+    if (win && !win.isDestroyed()) {
+      const petBounds = win.getBounds();
+      const x = petBounds.x + Math.round((petBounds.width - TEXT_WIN_WIDTH) / 2);
+      const y = petBounds.y + petBounds.height + 10;
+      asrTextWin.setPosition(x, y);
+    }
+    asrTextWin.showInactive();
+  });
+}
+
+function destroyAsrTextWindow() {
+  if (asrTextWin && !asrTextWin.isDestroyed()) {
+    asrTextWin.close();
+    asrTextWin = null;
+  }
+}
+
+function updateAsrText(text) {
+  if (asrTextWin && !asrTextWin.isDestroyed()) {
+    asrTextWin.webContents.send("update-asr-text", text);
+  }
+}
+
+function flashAsrTextInjected() {
+  if (asrTextWin && !asrTextWin.isDestroyed()) {
+    asrTextWin.webContents.send("flash-asr-text-injected");
+  }
+}
+
 function clampToScreen(x, y) {
   const displays = screen.getAllDisplays();
   let nearest = displays[0].workArea;
@@ -392,6 +458,7 @@ function initAsrConnection() {
           pendingText = text;
           const fullText = accumulatedAsrText + text;
           updateOverlayText(fullText);
+          updateAsrText(fullText);
           positionOverlayAtCaret();
           if (win && !win.isDestroyed()) {
             win.webContents.send("asr:partial-result", fullText);
@@ -409,6 +476,7 @@ function initAsrConnection() {
           injectText(textToInject)
             .then(() => {
               console.log('[ASR] SentenceEnd text injected successfully');
+              flashAsrTextInjected();
             })
             .catch(err => {
               console.error('[ASR] Failed to inject SentenceEnd text:', err.message);
@@ -600,6 +668,7 @@ function registerHotkey() {
       // Start recording
       initAsrConnection();
       createOverlayWindow();
+      createAsrTextWindow();
       // Start caret tracking
       caretTracker.startTracking(100, (caretPos) => {
         positionOverlayAtCaret();
@@ -616,10 +685,11 @@ function registerHotkey() {
           .then(() => console.log('[ASR] Remaining text injected'))
           .catch(err => console.error('[ASR] Failed to inject remaining text:', err.message));
       }
-      
+
       closeAsrConnection().then(() => {
         caretTracker.stopTracking();
         hideOverlayWindow();
+        destroyAsrTextWindow();
         if (win && !win.isDestroyed()) {
           win.webContents.send("asr:recording-stopped");
         }

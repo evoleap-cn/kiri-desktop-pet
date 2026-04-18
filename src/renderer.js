@@ -141,7 +141,6 @@ let isRecording = false;
 const asrOverlay = document.getElementById("asr-overlay");
 const asrDot = document.getElementById("asr-dot");
 const asrLabel = document.getElementById("asr-label");
-const asrText = document.getElementById("asr-text");
 const asrError = document.getElementById("asr-error");
 const asrStatus = document.getElementById("asr-status");
 const asrLoading = document.getElementById("asr-loading");
@@ -240,14 +239,13 @@ function hideAsrOverlay() {
 }
 
 function setAsrText(text) {
-  asrText.textContent = text;
-  asrText.classList.remove("injected");
+  // Text is now displayed in separate window via main process
+  // This function is kept for compatibility but no longer updates DOM directly
 }
 
 function flashInjected() {
   asrDot.classList.add("done");
   asrLabel.textContent = "Injected";
-  asrText.classList.add("injected");
 
   if (injectFlashTimeout) clearTimeout(injectFlashTimeout);
   injectFlashTimeout = setTimeout(() => {

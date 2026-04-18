@@ -75,29 +75,6 @@
       font-size: 11px;
       font-family: -apple-system, "Segoe UI", sans-serif;
     }
-    #asr-text {
-      margin-top: 4px;
-      padding: 6px 10px;
-      background: rgba(0, 0, 0, 0.75);
-      border-radius: 8px;
-      color: #fff;
-      font-size: 13px;
-      font-family: -apple-system, "Segoe UI", sans-serif;
-      max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
-      text-align: center;
-      min-height: 28px;
-      line-height: 1.4;
-      word-break: break-word;
-    }
-    #asr-text.injected {
-      animation: asr-inject-flash 0.8s ease;
-    }
-    @keyframes asr-inject-flash {
-      0% { background: rgba(52, 199, 89, 0.6); }
-      100% { background: rgba(0, 0, 0, 0.75); }
-    }
     #asr-error {
       margin-top: 4px;
       padding: 6px 10px;
@@ -259,7 +236,6 @@
       <div id="asr-dot"></div>
       <span id="asr-label">Recording...</span>
     </div>
-    <div id="asr-text"></div>
     <div id="asr-status"></div>
     <div id="asr-error"></div>
   </div>
