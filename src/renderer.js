@@ -246,8 +246,15 @@ function flashInjected() {
 
   if (injectFlashTimeout) clearTimeout(injectFlashTimeout);
   injectFlashTimeout = setTimeout(() => {
-    asrOverlay.classList.remove("visible");
-  }, 1200);
+    // After showing Injected, restore to Recording if still active
+    if (asrActive) {
+      asrDot.classList.remove("done");
+      asrLabel.textContent = "Recording...";
+    } else {
+      // If not active, hide the overlay
+      asrOverlay.classList.remove("visible");
+    }
+  }, 1500);
 }
 
 function showAsrError(msg) {
@@ -288,11 +295,11 @@ window.electronAPI.onToggleRecording((recording) => {
     petGlow.classList.add('recording');
   } else {
     hideLoading();
+    hideAsrOverlay();
     stopRecording();
     petGlow.classList.remove('recording');
-    if (asrActive) {
-      flashInjected();
-    }
+    asrActive = false;
+    // Don't call flashInjected() here - stop is immediate, not an injection event
   }
 });
 
