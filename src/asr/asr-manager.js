@@ -322,11 +322,65 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker }) {
     return asrWs && asrWs.readyState === WebSocket.OPEN;
   }
 
+  function toggleRecording() {
+    console.log(`[ASR] Toggle recording (current state: ${isRecording ? "recording" : "stopped"})`);
+    isRecording = !isRecording;
+
+    if (isRecording) {
+      notifyRenderer("asr:connecting");
+      initAsrConnection();
+      windowManager.createOverlayWindow();
+      windowManager.createAsrTextWindow();
+      caretTracker.startTracking(100, () => {
+        windowManager.positionOverlayAtCaret();
+      });
+    } else {
+      console.log("[ASR] Stopping recording - immediate shutdown");
+
+      if (pendingText && pendingText.trim()) {
+        console.log(`[ASR] Stop recording - injecting remaining text: "${pendingText}"`);
+        const textToInject = (accumulatedAsrText + " " + pendingText).trim();
+        injectText(textToInject)
+          .then(() => console.log("[ASR] Remaining text injected"))
+          .catch(err => console.error("[ASR] Failed to inject remaining text:", err.message));
+      }
+
+      if (asrWs) {
+        stopHeartbeat();
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        audioBufferQueue = [];
+        if (asrWs.readyState === WebSocket.OPEN) {
+          const stopMsg = {
+            header: { namespace: "SpeechTranscriber", name: "StopTranscription" },
+          };
+          asrWs.send(JSON.stringify(stopMsg));
+        }
+        asrWs.close();
+        asrWs = null;
+      }
+
+      isRecording = false;
+      accumulatedAsrText = "";
+      pendingText = "";
+      asrFinalResultReceived = false;
+      reconnectAttempts = 0;
+
+      caretTracker.stopTracking();
+      windowManager.hideOverlayWindow();
+      windowManager.destroyAsrTextWindow();
+      notifyRenderer("asr:recording-stopped");
+    }
+  }
+
   return {
     registerHotkey,
     closeAsrConnection,
     sendAudioChunk,
     isConnected,
+    toggleRecording,
   };
 }
 

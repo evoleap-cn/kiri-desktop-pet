@@ -27,6 +27,7 @@ function createWindowManager({ getWin, caretTracker }) {
   let overlayWin = null;
   let asrTextWin = null;
   let popupWin = null;
+  let settingsWin = null;
   let lastLoggedCaretPos = null;
 
   // ─── ASR Text Window ────────────────────────────────────────────────────────
@@ -289,6 +290,66 @@ function createWindowManager({ getWin, caretTracker }) {
     });
   }
 
+  // ─── Settings Window ─────────────────────────────────────────────────────
+
+  function createSettings() {
+    if (settingsWin && !settingsWin.isDestroyed()) {
+      settingsWin.focus();
+      return;
+    }
+
+    const SETTINGS_W = 900;
+    const SETTINGS_H = 540;
+
+    // 基于屏幕居中，而非相对宠物
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { workArea } = primaryDisplay;
+    const posX = workArea.x + Math.round((workArea.width - SETTINGS_W) / 2);
+    const posY = workArea.y + Math.round((workArea.height - SETTINGS_H) / 2);
+
+    settingsWin = new BrowserWindow({
+      width: SETTINGS_W,
+      height: SETTINGS_H,
+      x: posX,
+      y: posY,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: false,
+      resizable: false,
+      skipTaskbar: false,
+      hasShadow: true,
+      show: false,
+      focusable: true,
+      title: "设置",
+      webPreferences: {
+        preload: path.join(__dirname, "..", "settings-preload.js"),
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    settingsWin.loadFile(path.join(__dirname, "..", "settings-window.html"));
+
+    settingsWin.once("ready-to-show", () => {
+      settingsWin.show();
+    });
+
+    settingsWin.on("closed", () => {
+      settingsWin = null;
+    });
+  }
+
+  function destroySettings() {
+    if (settingsWin && !settingsWin.isDestroyed()) {
+      settingsWin.close();
+      settingsWin = null;
+    }
+  }
+
+  function getSettingsWin() {
+    return settingsWin;
+  }
+
   return {
     clampToScreen,
     createAsrTextWindow,
@@ -304,6 +365,9 @@ function createWindowManager({ getWin, caretTracker }) {
     positionOverlayAtCaret,
     createPopup,
     destroyPopup,
+    createSettings,
+    destroySettings,
+    getSettingsWin,
   };
 }
 

@@ -52,6 +52,8 @@ function createTray() {
   tray = new Tray(icon);
   tray.setToolTip("EvoLeap Desktop Pet");
   const menu = Menu.buildFromTemplate([
+    { label: "设置", click: () => { windowManager.createSettings(); } },
+    { type: "separator" },
     { label: "Quit", click: () => { isQuitting = true; app.quit(); } },
   ]);
   tray.setContextMenu(menu);
@@ -192,6 +194,174 @@ function registerIpcHandlers() {
 
   ipcMain.on("asr:send-audio-chunk", (_event, buffer) => {
     asrManager.sendAudioChunk(buffer);
+  });
+
+  // ─── Settings IPC Handlers ─────────────────────────────────────────────
+
+  ipcMain.handle("settings:load", () => {
+    const prefs = loadPrefs();
+    return {
+      asr: {
+        serverUrl: process.env.ASR_SERVER_URL || prefs?.asrServerUrl || "ws://192.168.1.66:8000",
+        appkey: process.env.ASR_APPKEY || prefs?.asrAppkey || "",
+      },
+      pet: {
+        size: prefs?.petSize || 160,
+        opacity: prefs?.petOpacity || 100,
+      },
+      hotkeys: {
+        asr: prefs?.asrHotkey || "F9",
+      },
+      general: {
+        autostart: prefs?.autostart || false,
+        rememberPosition: prefs?.rememberPosition !== false,
+      },
+    };
+  });
+
+  ipcMain.handle("settings:save", (_event, settings) => {
+    try {
+      const prefs = loadPrefs() || {};
+      const updated = {
+        ...prefs,
+        x: win ? win.getBounds().x : prefs.x,
+        y: win ? win.getBounds().y : prefs.y,
+        asrServerUrl: settings.asr?.serverUrl,
+        asrAppkey: settings.asr?.appkey,
+        petSize: settings.pet?.size,
+        petOpacity: settings.pet?.opacity,
+        asrHotkey: settings.hotkeys?.asr,
+        autostart: settings.general?.autostart,
+        rememberPosition: settings.general?.rememberPosition,
+      };
+      fs.writeFileSync(PREFS_PATH, JSON.stringify(updated, null, 2));
+      
+      // 更新开机自启
+      app.setLoginItemSettings({
+        openAtLogin: settings.general?.autostart || false,
+      });
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("asr:test-connection", async (_event, serverUrl) => {
+    try {
+      const WebSocket = require("ws");
+      const ws = new WebSocket(serverUrl);
+      
+      return new Promise((resolve) => {
+        ws.on("open", () => {
+          ws.close();
+          resolve({ success: true });
+        });
+        ws.on("error", (err) => {
+          resolve({ success: false, error: err.message });
+        });
+        setTimeout(() => {
+          ws.close();
+          resolve({ success: false, error: "连接超时" });
+        }, 5000);
+      });
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("hotkey:update", (_event, hotkeys) => {
+    try {
+      globalShortcut.unregisterAll();
+      
+      if (hotkeys.asr) {
+        const ret = globalShortcut.register(hotkeys.asr, () => {
+          asrManager.toggleRecording();
+        });
+        
+        if (!ret) {
+          console.error("[Hotkey] Failed to register hotkey:", hotkeys.asr);
+        }
+      }
+      
+      // 保存热键到偏好
+      const prefs = loadPrefs() || {};
+      prefs.asrHotkey = hotkeys.asr;
+      fs.writeFileSync(PREFS_PATH, JSON.stringify(prefs, null, 2));
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("prefs:export", () => {
+    const { dialog } = require("electron");
+    const result = dialog.showSaveDialogSync({
+      defaultPath: "evoleap-prefs.json",
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    
+    if (result) {
+      const prefs = loadPrefs();
+      fs.writeFileSync(result, JSON.stringify(prefs, null, 2));
+      return { success: true, path: result };
+    }
+    return { success: false, error: "用户取消" };
+  });
+
+  ipcMain.handle("prefs:import", async () => {
+    const { dialog } = require("electron");
+    const result = dialog.showOpenDialogSync({
+      properties: ["openFile"],
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    
+    if (result && result[0]) {
+      try {
+        const imported = JSON.parse(fs.readFileSync(result[0], "utf8"));
+        const currentPrefs = loadPrefs() || {};
+        const merged = { ...currentPrefs, ...imported };
+        fs.writeFileSync(PREFS_PATH, JSON.stringify(merged, null, 2));
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    }
+    return { success: false, error: "用户取消" };
+  });
+
+  ipcMain.handle("position:reset", () => {
+    if (win && !win.isDestroyed()) {
+      const { workArea } = screen.getPrimaryDisplay();
+      const x = workArea.x + workArea.width - WIN_WIDTH - 20;
+      const y = workArea.y + workArea.height - WIN_HEIGHT - 20;
+      win.setPosition(x, y);
+      savePrefs();
+      return { success: true };
+    }
+    return { success: false, error: "窗口不存在" };
+  });
+
+  ipcMain.handle("autostart:set", (_event, enable) => {
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: enable,
+      });
+      const prefs = loadPrefs() || {};
+      prefs.autostart = enable;
+      fs.writeFileSync(PREFS_PATH, JSON.stringify(prefs, null, 2));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.on("settings:minimize", () => {
+    const settingsWin = windowManager.getSettingsWin();
+    if (settingsWin && !settingsWin.isDestroyed()) {
+      settingsWin.minimize();
+    }
   });
 }
 
