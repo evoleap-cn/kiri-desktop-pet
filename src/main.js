@@ -425,6 +425,7 @@ function createAcpWindow() {
       preload: path.join(__dirname, "acp", "preload.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
+      devTools: true,
     },
   });
 
@@ -432,6 +433,8 @@ function createAcpWindow() {
   const distPath = path.join(__dirname, "..", "dist", "acp", "index.html");
   if (fs.existsSync(distPath)) {
     acpWindow.loadFile(distPath);
+    // 打开开发者工具查看错误
+    acpWindow.webContents.openDevTools();
   } else {
     acpWindow.loadURL("http://localhost:5174").catch(() => {
       // Vite 也未启动，加载提示页
