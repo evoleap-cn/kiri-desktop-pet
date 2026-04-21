@@ -21,6 +21,7 @@ let win;
 let tray = null;
 let isQuitting = false;
 let ipcHandlersRegistered = false;
+let acpWindow = null;
 
 // ─── Prefs ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ function createTray() {
   tray = new Tray(icon);
   tray.setToolTip("EvoLeap Desktop Pet");
   const menu = Menu.buildFromTemplate([
+    { label: "ACP 对话", click: () => { createAcpWindow(); } },
+    { type: "separator" },
     { label: "设置", click: () => { windowManager.createSettings(); } },
     { type: "separator" },
     { label: "Quit", click: () => { isQuitting = true; app.quit(); } },
@@ -399,4 +402,118 @@ app.on("before-quit", () => {
   caretTracker.stopTracking();
   windowManager.destroyOverlayWindow();
   globalShortcut.unregisterAll();
+  if (acpWindow && !acpWindow.isDestroyed()) acpWindow.destroy();
+});
+
+// ─── ACP Window ──────────────────────────────────────────────────────────────
+
+function createAcpWindow() {
+  // 只允许一个 ACP 窗口
+  if (acpWindow && !acpWindow.isDestroyed()) {
+    acpWindow.focus();
+    return;
+  }
+
+  acpWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    frame: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "acp", "preload.cjs"),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  // 优先加载构建产物，否则尝试 dev server
+  const distPath = path.join(__dirname, "..", "dist", "acp", "index.html");
+  if (fs.existsSync(distPath)) {
+    acpWindow.loadFile(distPath);
+  } else {
+    acpWindow.loadURL("http://localhost:5174").catch(() => {
+      // Vite 也未启动，加载提示页
+      acpWindow.loadURL("data:text/html,<html><body style='background:#131010;color:#E7E3E1;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><div style='text-align:center'><h2>ACP 窗口</h2><p>请先运行 <code>npm run build:acp</code> 构建，或运行 <code>npm run dev:acp</code> 启动开发服务器</p></div></body></html>");
+    });
+  }
+
+  acpWindow.once("ready-to-show", () => {
+    acpWindow.show();
+  });
+
+  acpWindow.on("closed", () => {
+    acpWindow = null;
+  });
+}
+
+// ─── ACP IPC Handlers ────────────────────────────────────────────────────────
+
+// Mock 会话存储（内存中）
+const mockSessions = new Map();
+let mockSessionCounter = 0;
+
+function ensureMockSession(id) {
+  if (!mockSessions.has(id)) {
+    mockSessions.set(id, {
+      id,
+      title: `会话 ${++mockSessionCounter}`,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  }
+  return mockSessions.get(id);
+}
+
+ipcMain.handle("acp:send-message", async (_event, { sessionId, message }) => {
+  const session = ensureMockSession(sessionId);
+  session.messages.push({ role: "user", content: message, timestamp: Date.now() });
+  session.updatedAt = Date.now();
+
+  // 占位响应：延迟模拟 AI 回复
+  await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
+
+  const mockReply = `这是一个占位响应。ACP 后端尚未连接。\n\n你发送了: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"\n\n未来这里会接入真实的 ACP 协议响应。`;
+  session.messages.push({ role: "assistant", content: mockReply, timestamp: Date.now() });
+
+  return { content: mockReply };
+});
+
+ipcMain.handle("acp:list-sessions", async () => {
+  const list = Array.from(mockSessions.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+  return list;
+});
+
+ipcMain.handle("acp:new-session", async (_event, opts) => {
+  const id = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const session = {
+    id,
+    title: opts?.title || `会话 ${++mockSessionCounter}`,
+    messages: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  mockSessions.set(id, session);
+  return session;
+});
+
+ipcMain.handle("acp:delete-session", async (_event, sessionId) => {
+  mockSessions.delete(sessionId);
+});
+
+ipcMain.on("acp:minimize", () => {
+  if (acpWindow && !acpWindow.isDestroyed()) acpWindow.minimize();
+});
+
+ipcMain.on("acp:maximize", () => {
+  if (acpWindow && !acpWindow.isDestroyed()) {
+    if (acpWindow.isMaximized()) acpWindow.unmaximize();
+    else acpWindow.maximize();
+  }
+});
+
+ipcMain.on("acp:close", () => {
+  if (acpWindow && !acpWindow.isDestroyed()) acpWindow.close();
 });
