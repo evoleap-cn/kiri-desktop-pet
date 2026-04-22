@@ -63,6 +63,11 @@
           document.getElementById("toggle-remember-position").classList.add("active");
         }
       }
+
+      // 云盘设置
+      if (settings.cloud) {
+        document.getElementById("cloud-url").value = settings.cloud.url || "https://kirilab.evolutionleap.cn:8002/expert";
+      }
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
@@ -242,6 +247,9 @@
         },
         hotkeys: {
           asr: hotkeyDisplay.textContent,
+        },
+        cloud: {
+          url: document.getElementById("cloud-url").value,
         },
         general: {
           autostart: document.getElementById("toggle-autostart").classList.contains("active"),

@@ -157,6 +157,13 @@ function registerIpcHandlers() {
   ipcMain.on("menu-action", (_event, action) => {
     console.log("Menu action triggered:", action);
     windowManager.destroyPopup();
+
+    if (action === "云上纪要") {
+      const prefs = loadPrefs();
+      const cloudUrl = prefs?.cloudUrl || "https://kirilab.evolutionleap.cn:8002/expert";
+      const { shell } = require("electron");
+      shell.openExternal(cloudUrl);
+    }
   });
 
   ipcMain.on("open-context-menu", (_event, screenX, screenY) => {
@@ -212,6 +219,9 @@ function registerIpcHandlers() {
       hotkeys: {
         asr: prefs?.asrHotkey || "F9",
       },
+      cloud: {
+        url: prefs?.cloudUrl || "https://kirilab.evolutionleap.cn:8002/expert",
+      },
       general: {
         autostart: prefs?.autostart || false,
         rememberPosition: prefs?.rememberPosition !== false,
@@ -231,6 +241,7 @@ function registerIpcHandlers() {
         petSize: settings.pet?.size,
         petOpacity: settings.pet?.opacity,
         asrHotkey: settings.hotkeys?.asr,
+        cloudUrl: settings.cloud?.url,
         autostart: settings.general?.autostart,
         rememberPosition: settings.general?.rememberPosition,
       };
