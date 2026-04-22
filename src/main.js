@@ -431,19 +431,42 @@ function createAcpWindow() {
 
   // 优先加载构建产物，否则尝试 dev server
   const distPath = path.join(__dirname, "..", "dist", "acp", "index.html");
+  const preloadPath = path.join(__dirname, "acp", "preload.cjs");
+
+  console.log("[ACP] Preload path:", preloadPath, "exists:", fs.existsSync(preloadPath));
+  console.log("[ACP] Dist path:", distPath, "exists:", fs.existsSync(distPath));
+
   if (fs.existsSync(distPath)) {
+    console.log("[ACP] Loading from dist");
     acpWindow.loadFile(distPath);
-    // 打开开发者工具查看错误
     acpWindow.webContents.openDevTools();
   } else {
-    acpWindow.loadURL("http://localhost:5174").catch(() => {
-      // Vite 也未启动，加载提示页
+    console.log("[ACP] Loading from dev server: http://127.0.0.1:5179");
+    acpWindow.loadURL("http://127.0.0.1:5179").catch((err) => {
+      console.error("[ACP] Failed to load dev server:", err);
       acpWindow.loadURL("data:text/html,<html><body style='background:#131010;color:#E7E3E1;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><div style='text-align:center'><h2>ACP 窗口</h2><p>请先运行 <code>npm run build:acp</code> 构建，或运行 <code>npm run dev:acp</code> 启动开发服务器</p></div></body></html>");
     });
   }
 
+  acpWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription) => {
+    console.error("[ACP] Failed to load:", errorCode, errorDescription);
+  });
+
+  acpWindow.webContents.on("did-finish-load", () => {
+    console.log("[ACP] Page loaded successfully");
+    acpWindow.webContents.openDevTools();
+  });
+
+  // 添加快捷键打开开发者工具
+  acpWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.key === "F12" || (input.control && input.shift && input.key === "I")) {
+      acpWindow.webContents.toggleDevTools();
+    }
+  });
+
   acpWindow.once("ready-to-show", () => {
     acpWindow.show();
+    acpWindow.webContents.openDevTools();
   });
 
   acpWindow.on("closed", () => {

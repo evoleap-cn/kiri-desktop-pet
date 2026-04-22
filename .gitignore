@@ -1,5 +1,4 @@
 node_modules/
-node_modules
 dist/
 .env
 __pycache__/
@@ -20,3 +19,6 @@ logs/
 
 # Native addon build output (ignore build/ but keep prebuilds/)
 build/
+
+# Claude Code memory and cache
+.claude/
