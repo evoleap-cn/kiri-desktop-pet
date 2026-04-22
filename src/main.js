@@ -6,6 +6,8 @@ const { injectText } = require("./asr/text-injector");
 const caretTracker = require("./asr/caret-tracker");
 const { createWindowManager } = require("./windows/window-manager");
 const { createAsrManager } = require("./asr/asr-manager");
+const { createAppStateManage } = require("./state/app-state-manager");
+const { createRecordingSummaryManager } = require("./summary/recording-summary-manager");
 
 if (process.platform === "win32") {
   app.commandLine.appendSwitch("high-dpi-support", "true");
@@ -164,6 +166,10 @@ function registerIpcHandlers() {
       const { shell } = require("electron");
       shell.openExternal(cloudUrl);
     }
+
+    if (action === "录音纪要") {
+      handleRecordingSummaryRequest();
+    }
   });
 
   ipcMain.on("open-context-menu", (_event, screenX, screenY) => {
@@ -284,12 +290,20 @@ function registerIpcHandlers() {
   ipcMain.handle("hotkey:update", (_event, hotkeys) => {
     try {
       globalShortcut.unregisterAll();
-      
+
       if (hotkeys.asr) {
         const ret = globalShortcut.register(hotkeys.asr, () => {
+          // Check if recording summary is active - forbid transition
+          if (stateManager.isRecordingSummary()) {
+            console.log('[ASR] Cannot start: recording summary is active');
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('asr:error', '请先关闭录音纪要');
+            }
+            return;
+          }
           asrManager.toggleRecording();
         });
-        
+
         if (!ret) {
           console.error("[Hotkey] Failed to register hotkey:", hotkeys.asr);
         }
@@ -383,12 +397,45 @@ const windowManager = createWindowManager({
   caretTracker,
 });
 
+// Initialize global state manager
+const stateManager = createAppStateManage();
+
+// Initialize recording summary manager
+const recordingSummaryManager = createRecordingSummaryManager({
+  getWin: () => win,
+  windowManager,
+  stateManager,
+});
+
 const asrManager = createAsrManager({
   getWin: () => win,
   windowManager,
   injectText,
   caretTracker,
+  stateManager,
 });
+
+// ─── Business Logic Handlers ─────────────────────────────────────────────────
+
+function handleRecordingSummaryRequest() {
+  // Check if voice input is active - forbid transition
+  if (stateManager.isVoiceInput()) {
+    console.log('[RecordingSummary] Cannot start: voice input is active');
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('summary:error', '请先关闭语音输入');
+    }
+    return;
+  }
+
+  // Toggle recording summary state
+  if (stateManager.isRecordingSummary()) {
+    // Currently recording summary, stop it
+    recordingSummaryManager.stopRecording();
+  } else {
+    // From idle, start recording
+    recordingSummaryManager.startRecording();
+  }
+}
 
 app.whenReady().then(() => {
   createWindow();

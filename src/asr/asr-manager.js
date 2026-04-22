@@ -11,7 +11,7 @@ const ASR_CONFIG = {
 
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-function createAsrManager({ getWin, windowManager, injectText, caretTracker }) {
+function createAsrManager({ getWin, windowManager, injectText, caretTracker, stateManager }) {
   let asrWs = null;
   let isRecording = false;
   let heartbeatTimer = null;
@@ -260,9 +260,27 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker }) {
   function registerHotkey() {
     const ret = globalShortcut.register(ASR_CONFIG.hotkey, () => {
       console.log(`[ASR] Hotkey ${ASR_CONFIG.hotkey} pressed`);
+      
+      // Check if recording summary is active - forbid transition
+      if (stateManager && stateManager.isRecordingSummary()) {
+        console.log('[ASR] Cannot start: recording summary is active');
+        notifyRenderer('asr:error', '请先关闭录音纪要');
+        return;
+      }
+
       isRecording = !isRecording;
 
       if (isRecording) {
+        // Request state transition to voice_input
+        if (stateManager) {
+          const success = stateManager.transition('voice_input');
+          if (!success) {
+            console.warn('[ASR] State transition failed');
+            isRecording = false;
+            return;
+          }
+        }
+
         notifyRenderer("asr:connecting");
         initAsrConnection();
         windowManager.createOverlayWindow();
@@ -304,6 +322,11 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker }) {
         asrFinalResultReceived = false;
         reconnectAttempts = 0;
 
+        // Request state transition back to idle
+        if (stateManager) {
+          stateManager.transition('idle');
+        }
+
         caretTracker.stopTracking();
         windowManager.hideOverlayWindow();
         windowManager.destroyAsrTextWindow();
@@ -324,9 +347,27 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker }) {
 
   function toggleRecording() {
     console.log(`[ASR] Toggle recording (current state: ${isRecording ? "recording" : "stopped"})`);
+    
+    // Check if recording summary is active - forbid transition
+    if (stateManager && stateManager.isRecordingSummary()) {
+      console.log('[ASR] Cannot start: recording summary is active');
+      notifyRenderer('asr:error', '请先关闭录音纪要');
+      return;
+    }
+
     isRecording = !isRecording;
 
     if (isRecording) {
+      // Request state transition to voice_input
+      if (stateManager) {
+        const success = stateManager.transition('voice_input');
+        if (!success) {
+          console.warn('[ASR] State transition failed');
+          isRecording = false;
+          return;
+        }
+      }
+
       notifyRenderer("asr:connecting");
       initAsrConnection();
       windowManager.createOverlayWindow();
@@ -367,6 +408,11 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker }) {
       pendingText = "";
       asrFinalResultReceived = false;
       reconnectAttempts = 0;
+
+      // Request state transition back to idle
+      if (stateManager) {
+        stateManager.transition('idle');
+      }
 
       caretTracker.stopTracking();
       windowManager.hideOverlayWindow();
