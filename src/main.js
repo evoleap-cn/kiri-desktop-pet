@@ -158,9 +158,9 @@ function registerIpcHandlers() {
 
   ipcMain.on("menu-action", (_event, action) => {
     console.log("Menu action triggered:", action);
-    windowManager.destroyPopup();
 
     if (action === "云上纪要") {
+      windowManager.destroyPopup();
       const prefs = loadPrefs();
       const cloudUrl = prefs?.cloudUrl || "https://kirilab.evolutionleap.cn:8002/expert";
       const { shell } = require("electron");
@@ -168,6 +168,7 @@ function registerIpcHandlers() {
     }
 
     if (action === "录音纪要") {
+      // Don't destroy popup immediately - wait for state change to update UI
       handleRecordingSummaryRequest();
     }
   });
@@ -424,6 +425,7 @@ function handleRecordingSummaryRequest() {
     if (win && !win.isDestroyed()) {
       win.webContents.send('summary:error', '请先关闭语音输入');
     }
+    windowManager.destroyPopup();
     return;
   }
 
@@ -435,6 +437,11 @@ function handleRecordingSummaryRequest() {
     // From idle, start recording
     recordingSummaryManager.startRecording();
   }
+
+  // Destroy popup after a short delay to allow state change UI to render
+  setTimeout(() => {
+    windowManager.destroyPopup();
+  }, 300);
 }
 
 app.whenReady().then(() => {

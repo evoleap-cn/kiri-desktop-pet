@@ -350,6 +350,10 @@ function createWindowManager({ getWin, caretTracker }) {
     return settingsWin;
   }
 
+  function getPopup() {
+    return popupWin;
+  }
+
   return {
     clampToScreen,
     createAsrTextWindow,
@@ -365,6 +369,7 @@ function createWindowManager({ getWin, caretTracker }) {
     positionOverlayAtCaret,
     createPopup,
     destroyPopup,
+    getPopup,
     createSettings,
     destroySettings,
     getSettingsWin,

@@ -19,9 +19,20 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
   let isRecording = false;
 
   function notifyRenderer(channel, ...args) {
+    // Notify main window
     const win = getWin();
     if (win && !win.isDestroyed()) {
       win.webContents.send(channel, ...args);
+    }
+    
+    // Also notify popup if it exists
+    try {
+      const popupWin = windowManager.getPopup();
+      if (popupWin && !popupWin.isDestroyed()) {
+        popupWin.webContents.send(channel, ...args);
+      }
+    } catch (err) {
+      // Popup might not exist or not have getPopup method
     }
   }
 
