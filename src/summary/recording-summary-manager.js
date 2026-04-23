@@ -2,9 +2,12 @@
  * Recording Summary Manager
  * 
  * Handles the recording summary feature business logic:
- * - Audio recording
- * - Summary generation (future extension)
  * - State transitions via stateManager
+ * - IPC notifications to renderer process
+ * 
+ * Note: Actual audio recording should be handled by renderer process
+ * using browser APIs (MediaRecorder, getUserMedia).
+ * This manager focuses on state coordination and business logic.
  * 
  * Usage:
  *   const manager = createRecordingSummaryManager({ getWin, windowManager, stateManager });
@@ -14,9 +17,6 @@
 
 function createRecordingSummaryManager({ getWin, windowManager, stateManager }) {
   let isRecording = false;
-  let mediaRecorder = null;
-  let audioChunks = [];
-  let stream = null;
 
   function notifyRenderer(channel, ...args) {
     const win = getWin();
@@ -30,7 +30,7 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
    * Requests state transition from idle -> recording_summary
    * @returns {boolean} Success status
    */
-  async function startRecording() {
+  function startRecording() {
     if (isRecording) {
       console.log('[RecordingSummary] Already recording, ignoring start request');
       return false;
@@ -43,41 +43,13 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
       return false;
     }
 
-    try {
-      // Request microphone access
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Initialize MediaRecorder
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
+    // TODO: Implement actual recording logic in renderer process
+    // For now, this is a placeholder to verify state machine works
+    isRecording = true;
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        console.log('[RecordingSummary] Recording stopped, audio chunks collected:', audioChunks.length);
-        // TODO: Send audio to backend for summary generation
-        audioChunks = [];
-      };
-
-      // Start recording
-      mediaRecorder.start();
-      isRecording = true;
-
-      console.log('[RecordingSummary] Recording started');
-      notifyRenderer('summary:recording-started');
-      return true;
-
-    } catch (err) {
-      console.error('[RecordingSummary] Failed to start recording:', err.message);
-      // Rollback state transition
-      stateManager.transition('idle');
-      notifyRenderer('summary:error', err.message);
-      return false;
-    }
+    console.log('[RecordingSummary] Recording started (placeholder - real recording TBD)');
+    notifyRenderer('summary:recording-started');
+    return true;
   }
 
   /**
@@ -91,19 +63,11 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
     }
 
     try {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-
-      // Stop all audio tracks
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-      }
-
       isRecording = false;
-      console.log('[RecordingSummary] Recording stopped');
+      console.log('[RecordingSummary] Recording stopped (placeholder - real recording TBD)');
 
+      // TODO: Send collected audio to backend for summary generation
+      
       // Request state transition back to idle
       stateManager.transition('idle');
       notifyRenderer('summary:recording-stopped');
