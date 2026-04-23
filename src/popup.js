@@ -44,6 +44,13 @@ function setRecordingState(isRecording) {
   }
 }
 
+// Sync state on popup load
+if (window.electronAPI.syncRecordingState) {
+  window.electronAPI.syncRecordingState().then(isRecording => {
+    setRecordingState(isRecording);
+  });
+}
+
 // Listen for recording state changes from main process
 if (window.electronAPI.onSummaryRecordingStarted) {
   window.electronAPI.onSummaryRecordingStarted(() => {

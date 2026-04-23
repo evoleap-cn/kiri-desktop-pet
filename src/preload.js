@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onSummaryRecordingStarted: (cb) => ipcRenderer.on("summary:recording-started", () => cb()),
   onSummaryRecordingStopped: (cb) => ipcRenderer.on("summary:recording-stopped", () => cb()),
   onSummaryError: (cb) => ipcRenderer.on("summary:error", (_event, msg) => cb(msg)),
+  syncRecordingState: () => ipcRenderer.invoke("sync:recording-state"),
 
   // Debug: forward renderer logs to main process
   _log: (msg) => ipcRenderer.send("renderer-log", msg),

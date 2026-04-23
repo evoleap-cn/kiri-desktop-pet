@@ -189,6 +189,7 @@ function createWindowManager({ getWin, caretTracker }) {
     if (popupWin) {
       try {
         if (!popupWin.isDestroyed()) {
+          popupWin.removeAllListeners("closed");
           popupWin.close();
         }
       } catch {}
@@ -201,15 +202,68 @@ function createWindowManager({ getWin, caretTracker }) {
     }
   }
 
+  function hidePopup() {
+    if (popupWin && !popupWin.isDestroyed()) {
+      popupWin.hide();
+    }
+  }
+
+  function showPopup(petWinX, petWinY) {
+    if (!popupWin || popupWin.isDestroyed()) {
+      createPopup(petWinX, petWinY);
+      return;
+    }
+    
+    // Reposition popup
+    const POPUP_W = 200;
+    const POPUP_H = 280;
+    const pad = 16;
+
+    const displays = screen.getAllDisplays();
+    let display = displays[0];
+    let minDist = Infinity;
+    const petCX = petWinX + WIN_WIDTH / 2;
+    const petCY = petWinY + WIN_HEIGHT / 2;
+    for (const d of displays) {
+      const wa = d.workArea;
+      const dx = Math.max(wa.x - petCX, 0, petCX - (wa.x + wa.width));
+      const dy = Math.max(wa.y - petCY, 0, petCY - (wa.y + wa.height));
+      const dist = dx * dx + dy * dy;
+      if (dist < minDist) { minDist = dist; display = d; }
+    }
+    const { workArea } = display;
+
+    const petTop    = petWinY;
+    const petBottom = petWinY + WIN_HEIGHT;
+    const petLeft   = petWinX;
+    const petRight  = petWinX + WIN_WIDTH;
+
+    let posY;
+    if (petTop - workArea.y >= POPUP_H + pad) {
+      posY = petTop - POPUP_H - pad;
+    } else {
+      posY = petBottom + pad;
+    }
+    posY = Math.min(posY, workArea.y + workArea.height - POPUP_H);
+
+    let posX;
+    if (petRight - POPUP_W >= workArea.x) {
+      posX = petRight - POPUP_W;
+    } else {
+      posX = petLeft;
+    }
+    posX = Math.min(posX, workArea.x + workArea.width - POPUP_W);
+
+    popupWin.setPosition(posX, posY);
+    popupWin.showInactive();
+    popupWin.focus();
+  }
+
   function createPopup(petWinX, petWinY) {
-    if (popupWin) {
-      try {
-        if (!popupWin.isDestroyed()) {
-          popupWin.removeAllListeners("closed");
-          popupWin.close();
-        }
-      } catch {}
-      popupWin = null;
+    // If popup already exists, show it instead of creating new one
+    if (popupWin && !popupWin.isDestroyed()) {
+      showPopup(petWinX, petWinY);
+      return;
     }
 
     const POPUP_W = 200;
@@ -280,7 +334,7 @@ function createWindowManager({ getWin, caretTracker }) {
     popupWin.on("blur", () => {
       setTimeout(() => {
         if (popupWin && !popupWin.isDestroyed() && !popupWin.isFocused()) {
-          destroyPopup();
+          hidePopup();
         }
       }, 100);
     });
@@ -369,6 +423,8 @@ function createWindowManager({ getWin, caretTracker }) {
     positionOverlayAtCaret,
     createPopup,
     destroyPopup,
+    hidePopup,
+    showPopup,
     getPopup,
     createSettings,
     destroySettings,

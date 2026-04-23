@@ -150,17 +150,32 @@ function registerIpcHandlers() {
     if (!win || win.isDestroyed()) return;
     const bounds = win.getBounds();
     windowManager.createPopup(bounds.x, bounds.y);
+    
+    // Send current recording summary state to popup
+    const popupWin = windowManager.getPopup();
+    if (popupWin && !popupWin.isDestroyed()) {
+      if (stateManager.isRecordingSummary()) {
+        popupWin.webContents.send("summary:recording-started");
+      } else {
+        popupWin.webContents.send("summary:recording-stopped");
+      }
+    }
+  });
+
+  // Sync popup UI state when it becomes visible
+  ipcMain.handle("sync:recording-state", () => {
+    return stateManager.isRecordingSummary();
   });
 
   ipcMain.on("close-menu", () => {
-    windowManager.destroyPopup();
+    windowManager.hidePopup();
   });
 
   ipcMain.on("menu-action", (_event, action) => {
     console.log("Menu action triggered:", action);
 
     if (action === "云上纪要") {
-      windowManager.destroyPopup();
+      windowManager.hidePopup();
       const prefs = loadPrefs();
       const cloudUrl = prefs?.cloudUrl || "https://kirilab.evolutionleap.cn:8002/expert";
       const { shell } = require("electron");
@@ -425,7 +440,7 @@ function handleRecordingSummaryRequest() {
     if (win && !win.isDestroyed()) {
       win.webContents.send('summary:error', '请先关闭语音输入');
     }
-    windowManager.destroyPopup();
+    windowManager.hidePopup();
     return;
   }
 
@@ -438,10 +453,8 @@ function handleRecordingSummaryRequest() {
     recordingSummaryManager.startRecording();
   }
 
-  // Destroy popup after a short delay to allow state change UI to render
-  setTimeout(() => {
-    windowManager.destroyPopup();
-  }, 300);
+  // Hide popup after state change
+  windowManager.hidePopup();
 }
 
 app.whenReady().then(() => {
