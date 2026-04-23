@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>录音纪要</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    #container {
+      position: absolute;
+      inset: 8px 60px 8px 8px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 1px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      transform: perspective(800px) translateX(100%) rotateY(90deg);
+      transition: transform 0.3s cubic-bezier(0, 0, 0, 1);
+    }
+    #container.visible {
+      transform: perspective(800px) translateX(0) rotateY(0deg);
+    }
+    #container.slide-out {
+      transform: perspective(800px) translateX(100%) rotateY(90deg);
+      transition: transform 0.3s cubic-bezier(0.3, 0, 1, 1);
+    }
+
+    /* Waveform */
+    #waveform {
+      flex: 1;
+      height: 44px;
+      background: rgba(36, 89, 231, 0.05);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      perspective: 1000px;
+      contain: layout style paint;
+      transform: translateZ(0);
+    }
+    .waveform-bar {
+      position: absolute;
+      bottom: 50%;
+      right: 0;
+      transform: translateY(50%) translateX(calc(-5px - var(--bar-pos) * 1px)) translateZ(0);
+      background: #2459e7;
+      border-radius: 1.5px;
+      width: 3px;
+      min-height: 2px;
+      transition: height 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      will-change: height;
+      backface-visibility: hidden;
+    }
+
+    /* Info: indicator + duration */
+    #info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    #indicator {
+      color: #ff4d4f;
+      font-weight: 500;
+      font-size: 12px;
+      animation: blink 1.5s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    #duration {
+      color: #666;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    /* Stop button */
+    #stop-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      background: #ff4d4f;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    #stop-btn:hover { background: #ff7875; }
+    #stop-btn svg { color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="waveform"></div>
+    <div id="info">
+      <div id="indicator">● 录音中</div>
+      <div id="duration">00:00</div>
+    </div>
+    <button id="stop-btn" title="停止录音">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+        <rect x="4" y="4" width="12" height="12" rx="2"/>
+      </svg>
+    </button>
+  </div>
+  <script src="recording-window.js"></script>
+</body>
+</html>

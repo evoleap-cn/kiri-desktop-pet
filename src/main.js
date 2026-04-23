@@ -105,6 +105,7 @@ function createWindow() {
   win.on("move", () => {
     savePrefs();
     windowManager.syncAsrTextWindowPosition();
+    windowManager.syncRecordingWindowPosition();
   });
 
   win.on("closed", () => {
@@ -244,6 +245,9 @@ function registerIpcHandlers() {
       cloud: {
         url: prefs?.cloudUrl || "https://kirilab.evolutionleap.cn:8002/expert",
       },
+      recording: {
+        savePath: prefs?.recordingSavePath || "",
+      },
       general: {
         autostart: prefs?.autostart || false,
         rememberPosition: prefs?.rememberPosition !== false,
@@ -264,6 +268,7 @@ function registerIpcHandlers() {
         petOpacity: settings.pet?.opacity,
         asrHotkey: settings.hotkeys?.asr,
         cloudUrl: settings.cloud?.url,
+        recordingSavePath: settings.recording?.savePath,
         autostart: settings.general?.autostart,
         rememberPosition: settings.general?.rememberPosition,
       };
@@ -398,11 +403,33 @@ function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle("dialog:select-directory", async () => {
+    const { dialog } = require("electron");
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory"],
+      title: "选择录音保存目录",
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+
+    return result.filePaths[0];
+  });
+
   ipcMain.on("settings:minimize", () => {
     const settingsWin = windowManager.getSettingsWin();
     if (settingsWin && !settingsWin.isDestroyed()) {
       settingsWin.minimize();
     }
+  });
+
+  ipcMain.on("recording:stop", () => {
+    recordingSummaryManager.stopRecording();
+  });
+
+  ipcMain.on("recording:audio-chunk", (_event, buffer) => {
+    recordingSummaryManager.collectAudioChunk(buffer);
   });
 }
 

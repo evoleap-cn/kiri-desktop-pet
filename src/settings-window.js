@@ -68,6 +68,11 @@
       if (settings.cloud) {
         document.getElementById("cloud-url").value = settings.cloud.url || "https://kirilab.evolutionleap.cn:8002/expert";
       }
+
+      // 录音设置
+      if (settings.recording) {
+        document.getElementById("recording-save-path").value = settings.recording.savePath || "";
+      }
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
@@ -231,6 +236,19 @@
     }
   });
 
+  // ─── 选择录音保存路径 ──────────────────────────────────────
+  document.getElementById("btn-browse-path").addEventListener("click", async () => {
+    try {
+      const path = await window.settingsAPI.selectDirectory();
+      if (path) {
+        document.getElementById("recording-save-path").value = path;
+        autoSave();
+      }
+    } catch (error) {
+      alert(`选择目录失败: ${error.message}`);
+    }
+  });
+
   // ─── 保存设置（当设置改变时自动保存） ───────────────────────
   let saveTimeout;
   function autoSave() {
@@ -250,6 +268,9 @@
         },
         cloud: {
           url: document.getElementById("cloud-url").value,
+        },
+        recording: {
+          savePath: document.getElementById("recording-save-path").value,
         },
         general: {
           autostart: document.getElementById("toggle-autostart").classList.contains("active"),

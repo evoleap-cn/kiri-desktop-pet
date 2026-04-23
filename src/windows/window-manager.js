@@ -28,6 +28,7 @@ function createWindowManager({ getWin, caretTracker }) {
   let asrTextWin = null;
   let popupWin = null;
   let settingsWin = null;
+  let recordingWin = null;
   let lastLoggedCaretPos = null;
 
   // ─── ASR Text Window ────────────────────────────────────────────────────────
@@ -344,6 +345,85 @@ function createWindowManager({ getWin, caretTracker }) {
     });
   }
 
+  // ─── Recording Window ────────────────────────────────────────────────────
+
+  const RECORDING_W = 340;
+  const RECORDING_H = 80; // 64px content + 8px shadow bleed on each side
+
+  function createRecordingWindow() {
+    if (recordingWin && !recordingWin.isDestroyed()) return;
+
+    recordingWin = new BrowserWindow({
+      width: RECORDING_W,
+      height: RECORDING_H,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: true,
+      resizable: false,
+      skipTaskbar: true,
+      hasShadow: true,
+      show: false,
+      focusable: false,
+      type: "toolbar",
+      webPreferences: {
+        preload: path.join(__dirname, "..", "recording-preload.js"),
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    recordingWin.setAlwaysOnTop(true, "floating");
+    recordingWin.loadFile(path.join(__dirname, "..", "recording-window.html"));
+    recordingWin.webContents.openDevTools({ mode: "detach" });
+
+    recordingWin.on("closed", () => {
+      recordingWin = null;
+    });
+  }
+
+  function showRecordingWindow(petWinX, petWinY) {
+    if (!recordingWin || recordingWin.isDestroyed()) {
+      createRecordingWindow();
+      recordingWin.once("ready-to-show", () => {
+        _positionRecordingWindow(petWinX, petWinY);
+        recordingWin.showInactive();
+        const petWin = getWin();
+        if (petWin && !petWin.isDestroyed()) petWin.moveTop();
+      });
+      return;
+    }
+    _positionRecordingWindow(petWinX, petWinY);
+    recordingWin.showInactive();
+    const petWin = getWin();
+    if (petWin && !petWin.isDestroyed()) petWin.moveTop();
+  }
+
+  function _positionRecordingWindow(petWinX, petWinY) {
+    if (!recordingWin || recordingWin.isDestroyed()) return;
+    const x = petWinX + Math.round(WIN_WIDTH / 2) - RECORDING_W;
+    const y = petWinY + Math.round((WIN_HEIGHT - RECORDING_H) / 2);
+    recordingWin.setBounds({ x, y, width: RECORDING_W, height: RECORDING_H });
+  }
+
+  function syncRecordingWindowPosition() {
+    const win = getWin();
+    if (recordingWin && !recordingWin.isDestroyed() && recordingWin.isVisible()
+        && win && !win.isDestroyed()) {
+      const { x, y } = win.getBounds();
+      _positionRecordingWindow(x, y);
+    }
+  }
+
+  function hideRecordingWindow() {
+    if (recordingWin && !recordingWin.isDestroyed()) {
+      recordingWin.close();
+    }
+  }
+
+  function getRecordingWin() {
+    return recordingWin;
+  }
+
   // ─── Settings Window ─────────────────────────────────────────────────────
 
   function createSettings() {
@@ -426,6 +506,11 @@ function createWindowManager({ getWin, caretTracker }) {
     hidePopup,
     showPopup,
     getPopup,
+    createRecordingWindow,
+    showRecordingWindow,
+    hideRecordingWindow,
+    syncRecordingWindowPosition,
+    getRecordingWin,
     createSettings,
     destroySettings,
     getSettingsWin,

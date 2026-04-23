@@ -365,6 +365,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
         <span>云盘</span>
       </div>
+      <div class="sidebar-item" data-section="recording">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        <span>录音</span>
+      </div>
       <div class="sidebar-item" data-section="general">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>通用</span>
@@ -438,6 +442,21 @@
           <div class="form-group">
             <label class="form-label">点击菜单"云上纪要"时打开的链接</label>
             <input type="text" class="form-input" id="cloud-url" placeholder="https://kirilab.evolutionleap.cn:8002/expert">
+          </div>
+        </div>
+      </div>
+
+      <!-- 录音设置 -->
+      <div class="section" id="section-recording">
+        <div class="section-title">录音设置</div>
+        <div class="settings-card">
+          <div class="settings-card-title">保存路径</div>
+          <div class="form-group">
+            <label class="form-label">录音文件保存目录</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="form-input" id="recording-save-path" placeholder="默认: 用户文档目录" style="flex: 1;">
+              <button class="btn btn-secondary" id="btn-browse-path" style="white-space: nowrap;">浏览</button>
+            </div>
           </div>
         </div>
       </div>
