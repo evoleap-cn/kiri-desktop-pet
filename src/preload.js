@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onSummaryError: (cb) => ipcRenderer.on("summary:error", (_event, msg) => cb(msg)),
   syncRecordingState: () => ipcRenderer.invoke("sync:recording-state"),
 
+  // Task Window
+  openTaskWindow: () => ipcRenderer.send("task-window:open"),
+
   // Debug: forward renderer logs to main process
   _log: (msg) => ipcRenderer.send("renderer-log", msg),
 });

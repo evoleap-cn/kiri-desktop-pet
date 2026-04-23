@@ -29,6 +29,7 @@ function createWindowManager({ getWin, caretTracker }) {
   let popupWin = null;
   let settingsWin = null;
   let recordingWin = null;
+  let taskWin = null;
   let lastLoggedCaretPos = null;
 
   // ─── ASR Text Window ────────────────────────────────────────────────────────
@@ -488,6 +489,82 @@ function createWindowManager({ getWin, caretTracker }) {
     return popupWin;
   }
 
+  // ─── Task Window ─────────────────────────────────────────────────────
+
+  const TASK_W = 420;
+  const TASK_H = 520;
+
+  function createTaskWindow() {
+    if (taskWin && !taskWin.isDestroyed()) {
+      taskWin.show();
+      taskWin.focus();
+      return;
+    }
+
+    // 基于屏幕居中
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { workArea } = primaryDisplay;
+    const posX = workArea.x + Math.round((workArea.width - TASK_W) / 2);
+    const posY = workArea.y + Math.round((workArea.height - TASK_H) / 2);
+
+    taskWin = new BrowserWindow({
+      width: TASK_W,
+      height: TASK_H,
+      x: posX,
+      y: posY,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: false,
+      resizable: true,
+      skipTaskbar: false,
+      hasShadow: true,
+      show: false,
+      focusable: true,
+      title: "任务列表",
+      webPreferences: {
+        preload: path.join(__dirname, "..", "task-preload.js"),
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    taskWin.loadFile(path.join(__dirname, "..", "task-window.html"));
+
+    taskWin.once("ready-to-show", () => {
+      taskWin.show();
+    });
+
+    taskWin.on("closed", () => {
+      taskWin = null;
+    });
+  }
+
+  function showTaskWindow() {
+    if (!taskWin || taskWin.isDestroyed()) {
+      createTaskWindow();
+      return;
+    }
+    taskWin.show();
+    taskWin.focus();
+  }
+
+  function hideTaskWindow() {
+    if (taskWin && !taskWin.isDestroyed()) {
+      taskWin.hide();
+    }
+  }
+
+  function destroyTaskWindow() {
+    if (taskWin && !taskWin.isDestroyed()) {
+      taskWin.close();
+      taskWin = null;
+    }
+  }
+
+  function getTaskWin() {
+    return taskWin;
+  }
+
   return {
     clampToScreen,
     createAsrTextWindow,
@@ -514,6 +591,11 @@ function createWindowManager({ getWin, caretTracker }) {
     createSettings,
     destroySettings,
     getSettingsWin,
+    createTaskWindow,
+    showTaskWindow,
+    hideTaskWindow,
+    destroyTaskWindow,
+    getTaskWin,
   };
 }
 

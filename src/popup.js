@@ -17,6 +17,16 @@ if (searchInput) {
 document.querySelectorAll(".pet-menu-item").forEach((el) => {
   el.addEventListener("click", (e) => {
     e.stopPropagation();
+    const action = el.dataset.action;
+    
+    // Handle task window directly
+    if (action === "任务列表") {
+      if (window.electronAPI.openTaskWindow) {
+        window.electronAPI.openTaskWindow();
+      }
+      return;
+    }
+    
     window.electronAPI.menuAction(el.dataset.action);
   });
 });

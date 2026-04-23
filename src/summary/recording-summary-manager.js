@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function createRecordingSummaryManager({ getWin, windowManager, stateManager }) {
+function createRecordingSummaryManager({ getWin, windowManager, stateManager, taskManager }) {
   let isRecording = false;
   let audioChunks = [];
 
@@ -29,17 +29,28 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
     } catch {}
   }
 
-  function getSavePath() {
+  function getPrefs() {
     const PREFS_PATH = path.join(require('electron').app.getPath('userData'), 'evoleap-pet-prefs.json');
-    let prefs = {};
     try {
-      prefs = JSON.parse(fs.readFileSync(PREFS_PATH, 'utf8'));
+      return JSON.parse(fs.readFileSync(PREFS_PATH, 'utf8'));
     } catch {
-      // 使用默认路径
+      return {};
     }
+  }
 
-    const savePath = prefs.recordingSavePath || require('electron').app.getPath('documents');
-    return savePath;
+  function getSavePath() {
+    const prefs = getPrefs();
+    return prefs.recordingSavePath || require('electron').app.getPath('documents');
+  }
+
+  function getOutputPaths() {
+    const prefs = getPrefs();
+    const defaultDocs = require('electron').app.getPath('documents');
+    return {
+      recording: prefs.recordingSavePath || defaultDocs,
+      json: prefs.jsonOutputPath || defaultDocs,
+      markdown: prefs.markdownOutputPath || defaultDocs,
+    };
   }
 
   function generateFileName() {
@@ -103,7 +114,7 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
   function saveWavFile(pcmChunks) {
     try {
       const savePath = getSavePath();
-      
+
       // 确保目录存在
       if (!fs.existsSync(savePath)) {
         fs.mkdirSync(savePath, { recursive: true });
@@ -117,8 +128,11 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
 
       const duration = (pcmChunks.length * 1600 / SAMPLE_RATE).toFixed(1);
       console.log(`[RecordingSummary] Saved recording to: ${filePath} (${wavBuffer.length} bytes, ~${duration}s)`);
+      
+      return filePath;
     } catch (err) {
       console.error('[RecordingSummary] Failed to save WAV file:', err.message);
+      return null;
     }
   }
 
@@ -157,8 +171,9 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
       console.log(`[RecordingSummary] Recording stopped, collected ${audioChunks.length} chunks`);
 
       // 保存 WAV 文件
+      let savedFilePath = null;
       if (audioChunks.length > 0) {
-        saveWavFile(audioChunks);
+        savedFilePath = saveWavFile(audioChunks);
       } else {
         console.warn('[RecordingSummary] No audio data to save');
       }
@@ -167,6 +182,15 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager }) 
 
       stateManager.transition('idle');
       notifyRenderer('summary:recording-stopped');
+
+      // 如果保存了文件，创建录音纪要任务
+      if (savedFilePath && taskManager) {
+        const outputPaths = getOutputPaths();
+        console.log(`[RecordingSummary] Creating task for: ${savedFilePath}`);
+        taskManager.createRecordingSummaryTask(savedFilePath, { outputPaths });
+        // 自动开始处理队列
+        taskManager.processNext();
+      }
 
       audioChunks = [];
 

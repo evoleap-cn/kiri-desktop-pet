@@ -8,6 +8,7 @@ const { createWindowManager } = require("./windows/window-manager");
 const { createAsrManager } = require("./asr/asr-manager");
 const { createAppStateManage } = require("./state/app-state-manager");
 const { createRecordingSummaryManager } = require("./summary/recording-summary-manager");
+const { createTaskManager } = require("./task-system/task-manager");
 
 if (process.platform === "win32") {
   app.commandLine.appendSwitch("high-dpi-support", "true");
@@ -245,8 +246,10 @@ function registerIpcHandlers() {
       cloud: {
         url: prefs?.cloudUrl || "https://kirilab.evolutionleap.cn:8002/expert",
       },
-      recording: {
-        savePath: prefs?.recordingSavePath || "",
+      paths: {
+        recording: prefs?.recordingSavePath || "",
+        json: prefs?.jsonOutputPath || "",
+        markdown: prefs?.markdownOutputPath || "",
       },
       general: {
         autostart: prefs?.autostart || false,
@@ -268,7 +271,9 @@ function registerIpcHandlers() {
         petOpacity: settings.pet?.opacity,
         asrHotkey: settings.hotkeys?.asr,
         cloudUrl: settings.cloud?.url,
-        recordingSavePath: settings.recording?.savePath,
+        recordingSavePath: settings.paths?.recording,
+        jsonOutputPath: settings.paths?.json,
+        markdownOutputPath: settings.paths?.markdown,
         autostart: settings.general?.autostart,
         rememberPosition: settings.general?.rememberPosition,
       };
@@ -443,11 +448,18 @@ const windowManager = createWindowManager({
 // Initialize global state manager
 const stateManager = createAppStateManage();
 
+// Initialize task manager
+const taskManager = createTaskManager({
+  mainWindowGetter: () => win,
+  windowManager,
+});
+
 // Initialize recording summary manager
 const recordingSummaryManager = createRecordingSummaryManager({
   getWin: () => win,
   windowManager,
   stateManager,
+  taskManager,
 });
 
 const asrManager = createAsrManager({
@@ -484,10 +496,39 @@ function handleRecordingSummaryRequest() {
   windowManager.hidePopup();
 }
 
+// ─── Task Window IPC Handlers ────────────────────────────────────────────────
+
+function registerTaskIpcHandlers() {
+  // Open task window
+  ipcMain.on("task-window:open", () => {
+    windowManager.showTaskWindow();
+  });
+
+  // Close task window
+  ipcMain.on("task-window:close", () => {
+    windowManager.hideTaskWindow();
+  });
+
+  // Minimize task window
+  ipcMain.on("task-window:minimize", () => {
+    const taskWin = windowManager.getTaskWin();
+    if (taskWin && !taskWin.isDestroyed()) {
+      taskWin.minimize();
+    }
+  });
+
+  // Request initial task list
+  ipcMain.on("task:request-list", (event) => {
+    const taskList = taskManager.getTaskList();
+    event.sender.send('task:list-update', taskList);
+  });
+}
+
 app.whenReady().then(() => {
   createWindow();
   console.log("[ASR] Registering hotkey F9...");
   asrManager.registerHotkey();
+  registerTaskIpcHandlers();
 
   app.on("activate", () => {
     if (!win || win.isDestroyed()) createWindow();

@@ -64,14 +64,16 @@
         }
       }
 
-      // 云盘设置
+      // 云上纪要设置
       if (settings.cloud) {
         document.getElementById("cloud-url").value = settings.cloud.url || "https://kirilab.evolutionleap.cn:8002/expert";
       }
 
-      // 录音设置
-      if (settings.recording) {
-        document.getElementById("recording-save-path").value = settings.recording.savePath || "";
+      // 录音和输出路径设置
+      if (settings.paths) {
+        document.getElementById("recording-save-path").value = settings.paths.recording || "";
+        document.getElementById("json-output-path").value = settings.paths.json || "";
+        document.getElementById("markdown-output-path").value = settings.paths.markdown || "";
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -236,12 +238,36 @@
     }
   });
 
-  // ─── 选择录音保存路径 ──────────────────────────────────────
-  document.getElementById("btn-browse-path").addEventListener("click", async () => {
+  // ─── 选择输出路径 ──────────────────────────────────────
+  document.getElementById("btn-browse-recording-path").addEventListener("click", async () => {
     try {
       const path = await window.settingsAPI.selectDirectory();
       if (path) {
         document.getElementById("recording-save-path").value = path;
+        autoSave();
+      }
+    } catch (error) {
+      alert(`选择目录失败: ${error.message}`);
+    }
+  });
+
+  document.getElementById("btn-browse-json-path").addEventListener("click", async () => {
+    try {
+      const path = await window.settingsAPI.selectDirectory();
+      if (path) {
+        document.getElementById("json-output-path").value = path;
+        autoSave();
+      }
+    } catch (error) {
+      alert(`选择目录失败: ${error.message}`);
+    }
+  });
+
+  document.getElementById("btn-browse-markdown-path").addEventListener("click", async () => {
+    try {
+      const path = await window.settingsAPI.selectDirectory();
+      if (path) {
+        document.getElementById("markdown-output-path").value = path;
         autoSave();
       }
     } catch (error) {
@@ -269,8 +295,10 @@
         cloud: {
           url: document.getElementById("cloud-url").value,
         },
-        recording: {
-          savePath: document.getElementById("recording-save-path").value,
+        paths: {
+          recording: document.getElementById("recording-save-path").value,
+          json: document.getElementById("json-output-path").value,
+          markdown: document.getElementById("markdown-output-path").value,
         },
         general: {
           autostart: document.getElementById("toggle-autostart").classList.contains("active"),
