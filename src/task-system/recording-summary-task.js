@@ -75,28 +75,12 @@ class RecordingSummaryTask extends Task {
 
   /**
    * 阶段0: 连接ASR引擎
-   * 验证 ISI WebSocket 连接
+   * REST API 无需显式连接，直接跳过
    */
   async _loadAIEngine() {
-    try {
-      // 模拟连接验证过程
-      const progressInterval = setInterval(() => {
-        const currentProgress = this.stages[0].progress;
-        if (currentProgress < 90) {
-          this.updateProgress(currentProgress + 20);
-        }
-      }, 100);
-
-      // ISI 协议无需显式模型加载，连接即可
-      await this._delay(300);
-
-      clearInterval(progressInterval);
-      this.updateProgress(100);
-      this.completeStage();
-
-    } catch (err) {
-      throw new Error(`ASR引擎连接失败: ${err.message}`);
-    }
+    // REST API 无需模型加载或连接验证，直接完成
+    this.updateProgress(100);
+    this.completeStage();
   }
 
   /**

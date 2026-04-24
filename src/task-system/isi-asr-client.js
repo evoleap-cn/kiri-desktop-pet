@@ -1,323 +1,277 @@
 /**
- * ISI ASR WebSocket 客户端
+ * ISI ASR 客户端
  *
- * 封装阿里云 ISI WebSocket 协议，支持流式语音识别和说话人分离。
- * 端点：ws://<host>:8500/api/v1/ws/transcribe
- * 兼容阿里云 ISI WebSocket 协议，扩展了说话人识别（SpeakerDiarization 事件）。
+ * 封装阿里云 ISI ASR 服务，支持两种模式：
+ * 1. REST API 异步任务队列（推荐，用于已完成的录音文件）
+ *    - POST /api/v1/transcribe 提交文件
+ *    - GET /api/v1/jobs/{job_id} 轮询进度
+ *    - GET /api/v1/jobs/{job_id}/result 获取带说话人标注的结果
+ * 2. WebSocket 流式转录（已弃用，保留用于未来实时录音场景）
+ *
+ * 端点：http://<host>:8500
  */
 
-const WebSocket = require('ws');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+const url = require('url');
 
-const DEFAULT_WS_URL = 'ws://192.168.1.66:8500';
+const DEFAULT_BASE_URL = 'http://192.168.1.66:8500';
 
 class ISIAsrClient {
   constructor(options = {}) {
-    this.wsUrl = options.wsUrl || DEFAULT_WS_URL;
-    this.sampleRate = options.sampleRate || 16000;
-    this.maxSentenceSilence = options.maxSentenceSilence || 800;
-    this.enableIntermediateResult = options.enableIntermediateResult !== false;
-    this.chunkSamples = options.chunkSamples || 3200; // 200ms @ 16kHz
+    // wsUrl 兼容旧配置格式（如 ws://192.168.1.66:8500），提取 host:port
+    const rawUrl = options.wsUrl || options.baseUrl || DEFAULT_BASE_URL;
+    // 将 ws:// 或 http:// 统一解析为 baseUrl
+    this.baseUrl = rawUrl.replace(/^ws:\/\//, 'http://').replace(/\/+$/, '');
+    this.pollInterval = options.pollInterval || 2000; // 轮询间隔（毫秒）
   }
 
+  // ─── REST API 异步任务队列 ────────────────────────────────────────
+
   /**
-   * 转录音频文件（WebSocket 流式）
-   * @param {string} audioPath - 音频文件路径（WAV 或 PCM）
+   * 转录音频文件（REST API 异步任务）
+   * @param {string} audioPath - 音频文件路径
    * @param {object} options - 可选参数
    * @param {function} onSegment - 每个句子的回调 (segment) => void
    * @param {function} onProgress - 进度回调 (progress: 0-100) => void
-   * @returns {Promise<{segments: Array, diarizationSegments: Array, text: string}>}
+   * @returns {Promise<{segments: Array, text: string, duration: number}>}
    */
   async transcribe(audioPath, { onSegment, onProgress } = {}) {
-    const taskId = crypto.randomBytes(16).toString('hex');
-    // 确保 wsUrl 不包含末尾斜杠
-    const baseUrl = this.wsUrl.replace(/\/+$/, '');
-    const fullWsUrl = `${baseUrl}/api/v1/ws/transcribe`;
+    console.log('[ISIAsr] Submitting transcription job for:', audioPath);
 
-    console.log('[ISIAsr] Connecting to:', fullWsUrl);
-    console.log('[ISIAsr] Audio file:', audioPath);
+    // 第一步：提交任务
+    const job = await this.submitJob(audioPath);
+    const jobId = job.job_id;
+    console.log('[ISIAsr] Job submitted, job_id:', jobId, 'status:', job.status);
 
-    return new Promise((resolve, reject) => {
-      let ws;
-      try {
-        ws = new WebSocket(fullWsUrl);
-      } catch (err) {
-        console.error('[ISIAsr] WebSocket creation failed:', err);
-        return reject(new Error(`WebSocket 连接失败: ${err.message}`));
+    // 第二步：轮询进度
+    let jobStatus = job;
+    while (jobStatus.status !== 'done' && jobStatus.status !== 'failed') {
+      await this._delay(this.pollInterval);
+      jobStatus = await this.pollJobStatus(jobId);
+
+      if (onProgress && jobStatus.status === 'processing') {
+        // 将 0-100 的进度映射到 80-95（预留 20% 给提交和取结果）
+        onProgress(80 + (jobStatus.progress || 0) * 0.15);
       }
 
-      const segments = [];
-      let diarizationSegments = [];
-      let sessionId = null;
-      let hasResolved = false;
-      let audioSent = false;
+      if (jobStatus.status === 'failed') {
+        throw new Error(`ASR 任务失败: ${jobStatus.error || '未知错误'}`);
+      }
+    }
 
-      const safeReject = (err) => {
-        if (!hasResolved) {
-          hasResolved = true;
-          console.error('[ISIAsr] Rejecting:', err.message);
-          reject(err);
-          try { ws.close(); } catch {}
-        }
+    console.log('[ISIAsr] Job completed, status:', jobStatus.status);
+
+    // 第三步：获取结果
+    if (onProgress) onProgress(98);
+    const result = await this.getJobResult(jobId);
+
+    // 格式化 segments
+    const segments = (result.segments || []).map((seg) => ({
+      speaker: seg.speaker || 'spk_unknown',
+      text: seg.text || '',
+      start: (seg.start_ms || 0) / 1000,
+      end: (seg.end_ms || 0) / 1000,
+    }));
+
+    // 调用 onSegment 回调
+    if (onSegment) {
+      for (const seg of segments) {
+        onSegment(seg);
+      }
+    }
+
+    if (onProgress) onProgress(100);
+
+    return {
+      segments,
+      text: result.full_text || segments.map((s) => s.text).join(''),
+      duration: result.duration_seconds || 0,
+    };
+  }
+
+  /**
+   * 第一步：提交转录任务
+   * POST /api/v1/transcribe
+   * @param {string} audioPath - 音频文件路径
+   * @returns {Promise<{job_id: string, status: string, created_at: string}>}
+   */
+  async submitJob(audioPath) {
+    const endpoint = '/api/v1/transcribe';
+    return this._uploadFile(endpoint, audioPath);
+  }
+
+  /**
+   * 第二步：轮询任务状态
+   * GET /api/v1/jobs/{job_id}
+   * @param {string} jobId - 任务 ID
+   * @returns {Promise<{job_id: string, status: string, progress: number}>}
+   */
+  async pollJobStatus(jobId) {
+    const endpoint = `/api/v1/jobs/${jobId}`;
+    return this._request('GET', endpoint);
+  }
+
+  /**
+   * 第三步：获取任务结果
+   * GET /api/v1/jobs/{job_id}/result
+   * @param {string} jobId - 任务 ID
+   * @returns {Promise<{job_id: string, status: string, full_text: string, segments: Array, duration_seconds: number}>}
+   */
+  async getJobResult(jobId) {
+    const endpoint = `/api/v1/jobs/${jobId}/result`;
+    return this._request('GET', endpoint);
+  }
+
+  /**
+   * 删除任务记录
+   * DELETE /api/v1/jobs/{job_id}
+   * @param {string} jobId - 任务 ID
+   */
+  async deleteJob(jobId) {
+    const endpoint = `/api/v1/jobs/${jobId}`;
+    return this._request('DELETE', endpoint);
+  }
+
+  /**
+   * 健康检查
+   * GET /api/v1/health
+   * @returns {Promise<{status: string, model_loaded: boolean}>}
+   */
+  async healthCheck() {
+    const endpoint = '/api/v1/health';
+    return this._request('GET', endpoint);
+  }
+
+  // ─── 私有方法 ────────────────────────────────────────────────────────
+
+  /**
+   * 上传文件（multipart/form-data）
+   * @param {string} endpoint - API 端点
+   * @param {string} filePath - 文件路径
+   * @returns {Promise<object>}
+   */
+  _uploadFile(endpoint, filePath) {
+    return new Promise((resolve, reject) => {
+      const fileBuffer = fs.readFileSync(filePath);
+      const boundary = `----FormBoundary${Date.now()}`;
+
+      let body = '';
+      body += `--${boundary}\r\n`;
+      body += `Content-Disposition: form-data; name="file"; filename="${path.basename(filePath)}"\r\n`;
+      body += `Content-Type: audio/wav\r\n\r\n`;
+
+      const bodyPrefix = Buffer.from(body, 'utf-8');
+      const bodySuffix = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf-8');
+      const contentLength = bodyPrefix.length + fileBuffer.length + bodySuffix.length;
+
+      const parsedUrl = url.parse(this.baseUrl + endpoint);
+      const reqOptions = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port,
+        path: parsedUrl.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': contentLength,
+        },
       };
 
-      ws.on('open', () => {
-        console.log('[ISIAsr] WebSocket connected');
-        // 发送 StartTranscription
-        const startMsg = {
-          header: {
-            message_id: crypto.randomBytes(16).toString('hex'),
-            task_id: taskId,
-            namespace: 'SpeechTranscriber',
-            name: 'StartTranscription',
-          },
-          payload: {
-            format: 'pcm',
-            sample_rate: this.sampleRate,
-            enable_intermediate_result: this.enableIntermediateResult,
-            max_sentence_silence: this.maxSentenceSilence,
-          },
-        };
-        console.log('[ISIAsr] Sending StartTranscription:', JSON.stringify(startMsg, null, 2));
-        ws.send(JSON.stringify(startMsg));
-      });
-
-      ws.on('message', (raw) => {
-        // 检查是否是二进制消息（不应该，但记录一下）
-        if (!Buffer.isBuffer(raw) && typeof raw !== 'string') {
-          console.warn('[ISIAsr] Unexpected message type:', typeof raw);
-          return;
-        }
-
-        let msg;
-        try {
-          const text = typeof raw === 'string' ? raw : raw.toString('utf-8');
-          msg = JSON.parse(text);
-        } catch (e) {
-          console.warn('[ISIAsr] Failed to parse message:', raw.toString().slice(0, 200));
-          return;
-        }
-
-        const header = msg.header || {};
-        const name = header.name;
-        const status = header.status;
-
-        console.log('[ISIAsr] Received event:', name, 'status:', status);
-
-        // 检查错误
-        if (status && status !== 20000000) {
-          const errMsg = `ASR 错误: ${header.status_message || '未知错误'} (${status})`;
-          safeReject(new Error(errMsg));
-          return;
-        }
-
-        switch (name) {
-          case 'TranscriptionStarted': {
-            sessionId = msg.payload?.session_id;
-            console.log('[ISIAsr] Transcription started, session:', sessionId);
-            // 开始发送音频
-            this._sendAudio(ws, audioPath, (progress) => {
-              if (onProgress) onProgress(progress * 0.8); // 发送占 80%
-            })
-              .then(() => {
-                console.log('[ISIAsr] Audio sending complete, sending StopTranscription');
-                audioSent = true;
-                // 发送 StopTranscription
-                const stopMsg = {
-                  header: {
-                    message_id: crypto.randomBytes(16).toString('hex'),
-                    task_id: taskId,
-                    namespace: 'SpeechTranscriber',
-                    name: 'StopTranscription',
-                  },
-                };
-                ws.send(JSON.stringify(stopMsg));
-              })
-              .catch((err) => {
-                safeReject(new Error(`发送音频失败: ${err.message}`));
-              });
-            break;
-          }
-
-          case 'SentenceBegin': {
-            console.log('[ISIAsr] SentenceBegin:', msg.payload);
-            break;
-          }
-
-          case 'TranscriptionResultChanged': {
-            // 中间结果，可选（这里不处理，只关心最终句子）
-            break;
-          }
-
-          case 'SentenceEnd': {
-            const p = msg.payload;
-            const segment = {
-              speaker: null, // 说话人信息在 SpeakerDiarization 中
-              text: p.result || '',
-              start: (p.begin_time || 0) / 1000, // ms → s
-              end: (p.time || 0) / 1000,
-              index: p.index,
-            };
-            segments.push(segment);
-            console.log(`[ISIAsr] SentenceEnd [${segment.start.toFixed(1)}s-${segment.end.toFixed(1)}s]: "${segment.text}"`);
-            if (onSegment) onSegment(segment);
-            if (onProgress) {
-              // 句子结束时更新进度
-              const progress = 0.8 + (segments.length * 0.05);
-              onProgress(Math.min(95, progress));
+      const req = http.request(reqOptions, (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode === 200 || res.statusCode === 202) {
+            try {
+              resolve(JSON.parse(data));
+            } catch {
+              reject(new Error(`Invalid JSON response: ${data}`));
             }
-            break;
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${data}`));
           }
-
-          case 'SpeakerDiarization': {
-            console.log('[ISIAsr] SpeakerDiarization received, segments:', msg.payload?.segments?.length || 0);
-            // 离线说话人标注，覆盖 segments 的 speaker 信息
-            diarizationSegments = (msg.payload?.segments || []).map((seg) => ({
-              speaker: seg.speaker || 'spk_unknown',
-              text: seg.result || '',
-              start: (seg.begin_time || 0) / 1000,
-              end: (seg.time || 0) / 1000,
-              index: seg.index,
-            }));
-            // 用说话人标注替换简单句子
-            if (diarizationSegments.length > 0) {
-              segments.length = 0;
-              segments.push(...diarizationSegments);
-              console.log('[ISIAsr] Replaced segments with diarization segments');
-              if (onProgress) onProgress(98);
-            }
-            break;
-          }
-
-          case 'TranscriptionCompleted': {
-            console.log('[ISIAsr] TranscriptionCompleted, total segments:', segments.length);
-            hasResolved = true;
-            if (onProgress) onProgress(100);
-            resolve({
-              segments,
-              diarizationSegments,
-              text: segments.map((s) => s.text).join(''),
-            });
-            try { ws.close(); } catch {}
-            break;
-          }
-
-          case 'TaskFailed': {
-            safeReject(new Error(`任务失败: ${header.status_message || '未知'}`));
-            break;
-          }
-
-          default:
-            console.warn('[ISIAsr] Unknown event:', name, JSON.stringify(msg).slice(0, 200));
-        }
+        });
       });
 
-      ws.on('error', (err) => {
-        console.error('[ISIAsr] WebSocket error:', err.message);
-        safeReject(new Error(`WebSocket 错误: ${err.message}`));
-      });
-
-      ws.on('close', (code, reason) => {
-        console.log('[ISIAsr] WebSocket closed, code:', code, 'reason:', reason.toString());
-        // 如果还未 resolve，说明异常断开
-        if (!hasResolved) {
-          safeReject(new Error(`WebSocket 连接意外关闭 (code: ${code})`));
-        }
-      });
+      req.on('error', reject);
+      req.write(bodyPrefix);
+      req.write(fileBuffer);
+      req.write(bodySuffix);
+      req.end();
     });
   }
 
   /**
-   * 读取音频文件并通过 WebSocket 发送 PCM 帧
-   * @param {WebSocket} ws - WebSocket 实例
-   * @param {string} audioPath - 音频文件路径
-   * @param {function} onProgress - 发送进度回调
-   * @returns {Promise<void>}
+   * 发送 HTTP 请求
+   * @param {string} method - HTTP 方法
+   * @param {string} endpoint - API 端点
+   * @param {object} [body] - 请求体（可选）
+   * @returns {Promise<object>}
    */
-  _sendAudio(ws, audioPath, onProgress) {
+  _request(method, endpoint, body = null) {
     return new Promise((resolve, reject) => {
-      try {
-        console.log('[ISIAsr] Reading audio file:', audioPath);
-        const audioBuffer = fs.readFileSync(audioPath);
-        console.log('[ISIAsr] Audio file size:', audioBuffer.length, 'bytes');
+      const parsedUrl = url.parse(this.baseUrl + endpoint);
+      const reqOptions = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port,
+        path: parsedUrl.pathname,
+        method,
+        headers: {},
+      };
 
-        // 如果是 WAV 文件，需要跳过头部
-        let pcmData = audioBuffer;
-        const ext = path.extname(audioPath).toLowerCase();
+      let bodyData = null;
+      if (body) {
+        bodyData = JSON.stringify(body);
+        reqOptions.headers['Content-Type'] = 'application/json';
+        reqOptions.headers['Content-Length'] = Buffer.byteLength(bodyData);
+      }
 
-        if (ext === '.wav') {
-          console.log('[ISIAsr] Parsing WAV file...');
-          // 检查 RIFF header
-          const riffHeader = audioBuffer.slice(0, 4).toString('ascii');
-          console.log('[ISIAsr] RIFF header:', riffHeader);
-
-          if (riffHeader === 'RIFF') {
-            // 查找 'data' chunk
-            let offset = 12;
-            let found = false;
-            while (offset < audioBuffer.length - 8) {
-              const chunkType = audioBuffer.slice(offset, offset + 4).toString('ascii');
-              const chunkSize = audioBuffer.readUInt32LE(offset + 4);
-              console.log(`[ISIAsr] Chunk: ${chunkType}, size: ${chunkSize}`);
-              if (chunkType === 'data') {
-                pcmData = audioBuffer.slice(offset + 8, offset + 8 + chunkSize);
-                console.log('[ISIAsr] Found data chunk, PCM size:', pcmData.length, 'bytes');
-                found = true;
-                break;
-              }
-              offset += 8 + chunkSize;
-              // 防止无限循环（坏文件）
-              if (offset > audioBuffer.length) {
-                console.error('[ISIAsr] Invalid WAV file structure');
-                break;
-              }
-            }
-            if (!found) {
-              reject(new Error('WAV 文件中未找到 data chunk'));
-              return;
+      const req = http.request(reqOptions, (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode === 204) {
+            // DELETE 成功，无内容
+            resolve({ status: 'deleted' });
+          } else if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              resolve(JSON.parse(data));
+            } catch {
+              reject(new Error(`Invalid JSON response: ${data}`));
             }
           } else {
-            console.warn('[ISIAsr] Not a valid RIFF WAV file, treating as raw PCM');
+            reject(new Error(`HTTP ${res.statusCode}: ${data}`));
           }
-        }
+        });
+      });
 
-        // 分帧发送
-        const totalBytes = pcmData.length;
-        let sentBytes = 0;
-        const chunkSize = this.chunkSamples * 2; // 2 bytes per sample (int16)
-
-        console.log(`[ISIAsr] Sending audio: ${totalBytes} bytes, chunk size: ${chunkSize} bytes`);
-
-        const sendFrame = () => {
-          if (sentBytes >= totalBytes) {
-            console.log('[ISIAsr] All audio sent');
-            onProgress(1);
-            resolve();
-            return;
-          }
-
-          const end = Math.min(sentBytes + chunkSize, totalBytes);
-          const chunk = pcmData.slice(sentBytes, end);
-
-          // 以 Binary Frame 发送
-          ws.send(chunk, { binary: true });
-
-          sentBytes += chunk.length;
-          onProgress(sentBytes / totalBytes);
-
-          // 每 100ms 发送一帧，模拟实时流
-          setTimeout(sendFrame, 100);
-        };
-
-        sendFrame();
-      } catch (err) {
-        console.error('[ISIAsr] _sendAudio error:', err);
-        reject(err);
-      }
+      req.on('error', reject);
+      if (bodyData) req.write(bodyData);
+      req.end();
     });
   }
+
+  _delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // ─── WebSocket 流式转录（已弃用）──────────────────────────────────────
+  // @deprecated 保留用于未来实时录音场景
+  // 参考：d:\Steve\Download\funasr-portable-package-20260423\docs\websocket-api.md
+  //
+  // 使用方式：
+  //   const ws = new WebSocket(`${this.baseUrl}/api/v1/ws/transcribe`);
+  //   ws.send(JSON.stringify({ header: { name: 'StartTranscription', ... }, payload: { ... } }));
+  //   // 发送 PCM 音频帧（Binary Frame）
+  //   ws.send(pcmChunk, { binary: true });
+  //   ws.send(JSON.stringify({ header: { name: 'StopTranscription', ... } }));
+  //   // 接收事件：TranscriptionStarted, SentenceBegin, SentenceEnd,
+  //   //           SpeakerDiarization, TranscriptionCompleted
 }
 
 module.exports = { ISIAsrClient };
