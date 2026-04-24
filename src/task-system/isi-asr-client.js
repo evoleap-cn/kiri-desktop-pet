@@ -24,7 +24,7 @@ class ISIAsrClient {
     const rawUrl = options.wsUrl || options.baseUrl || DEFAULT_BASE_URL;
     // 将 ws:// 或 http:// 统一解析为 baseUrl
     this.baseUrl = rawUrl.replace(/^ws:\/\//, 'http://').replace(/\/+$/, '');
-    this.pollInterval = options.pollInterval || 2000; // 轮询间隔（毫秒）
+    this.pollInterval = options.pollInterval || 200; // 轮询间隔（毫秒）
   }
 
   // ─── REST API 异步任务队列 ────────────────────────────────────────
@@ -103,14 +103,30 @@ class ISIAsrClient {
   }
 
   /**
-   * 第二步：轮询任务状态
+   * 第二步：轮询任务状态（带自动重试）
    * GET /api/v1/jobs/{job_id}
    * @param {string} jobId - 任务 ID
    * @returns {Promise<{job_id: string, status: string, progress: number}>}
    */
-  async pollJobStatus(jobId) {
+  async pollJobStatus(jobId, retries = 3) {
     const endpoint = `/api/v1/jobs/${jobId}`;
-    return this._request('GET', endpoint);
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await this._request('GET', endpoint);
+      } catch (err) {
+        lastError = err;
+        if (attempt < retries) {
+          // 递增延迟重试：200ms, 500ms, 1000ms
+          const delay = 200 + attempt * 300;
+          console.log(`[ISIAsr] pollJobStatus 失败，${delay}ms 后重试 (${attempt + 1}/${retries}): ${err.message}`);
+          await this._delay(delay);
+        }
+      }
+    }
+
+    throw new Error(`轮询任务状态失败: ${lastError.message}`);
   }
 
   /**

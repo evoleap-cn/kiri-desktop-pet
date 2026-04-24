@@ -7,6 +7,9 @@ const emptyStateEl = document.getElementById('empty-state');
 // Store task data by ID
 const taskMap = new Map();
 
+// Track expanded task cards to preserve state on re-render
+const expandedTaskIds = new Set();
+
 // ─── SVG Icons ─────────────────────────────────────────────────────────────
 
 const ICONS = {
@@ -67,8 +70,20 @@ const STATUS_TEXT = {
 // ─── Render Functions ──────────────────────────────────────────────────────
 
 function renderTaskList(taskList) {
-  // Clear existing cards
-  taskListEl.querySelectorAll('.task-card').forEach(el => el.remove());
+  // Collect current task IDs from DOM (to track which no longer exist)
+  const existingCardIds = new Set();
+  taskListEl.querySelectorAll('.task-card').forEach(el => {
+    existingCardIds.add(el.dataset.taskId);
+  });
+
+  // Remove cards for tasks that no longer exist
+  existingCardIds.forEach(id => {
+    if (!taskList.some(t => t.id === id)) {
+      const card = taskListEl.querySelector(`[data-task-id="${id}"]`);
+      if (card) card.remove();
+      expandedTaskIds.delete(id); // Clean up expanded state
+    }
+  });
 
   if (taskList.length === 0) {
     emptyStateEl.style.display = 'flex';
@@ -77,11 +92,23 @@ function renderTaskList(taskList) {
 
   emptyStateEl.style.display = 'none';
 
-  // Render each task
+  // Update or create cards
   taskList.forEach(taskData => {
     taskMap.set(taskData.id, taskData);
-    const card = createTaskCard(taskData);
-    taskListEl.appendChild(card);
+    let card = taskListEl.querySelector(`[data-task-id="${taskData.id}"]`);
+
+    if (card) {
+      // Update existing card, preserving expanded state
+      updateCardContent(card, taskData);
+    } else {
+      // Create new card
+      const newCard = createTaskCard(taskData);
+      // Restore expanded state if was expanded
+      if (expandedTaskIds.has(taskData.id)) {
+        newCard.classList.add('expanded');
+      }
+      taskListEl.appendChild(newCard);
+    }
   });
 }
 
@@ -90,6 +117,27 @@ function createTaskCard(taskData) {
   card.className = `task-card ${taskData.status === 'running' ? 'active' : ''}`;
   card.dataset.taskId = taskData.id;
 
+  // Restore expanded state if was expanded
+  if (expandedTaskIds.has(taskData.id)) {
+    card.classList.add('expanded');
+  }
+
+  renderCardContent(card, taskData);
+
+  // Click to expand/collapse
+  card.addEventListener('click', () => {
+    card.classList.toggle('expanded');
+    if (card.classList.contains('expanded')) {
+      expandedTaskIds.add(taskData.id);
+    } else {
+      expandedTaskIds.delete(taskData.id);
+    }
+  });
+
+  return card;
+}
+
+function renderCardContent(card, taskData) {
   const statusText = STATUS_TEXT[taskData.status] || taskData.status;
   const stageName = taskData.currentStageName || '';
   const progressClass = taskData.status === 'failed' ? 'failed' : taskData.status === 'completed' ? 'completed' : '';
@@ -109,13 +157,10 @@ function createTaskCard(taskData) {
       ${renderStages(taskData)}
     </div>
   `;
+}
 
-  // Click to expand/collapse
-  card.addEventListener('click', () => {
-    card.classList.toggle('expanded');
-  });
-
-  return card;
+function updateCardContent(card, taskData) {
+  renderCardContent(card, taskData);
 }
 
 function renderStages(taskData) {
@@ -162,31 +207,8 @@ function updateTaskCard(taskData) {
   let card = taskListEl.querySelector(`[data-task-id="${taskData.id}"]`);
 
   if (card) {
-    // Update existing card
-    const statusText = STATUS_TEXT[taskData.status] || taskData.status;
-    const stageName = taskData.currentStageName || '';
-    const progressClass = taskData.status === 'failed' ? 'failed' : taskData.status === 'completed' ? 'completed' : '';
-
-    card.className = `task-card ${taskData.status === 'running' ? 'active' : ''}`;
-    card.innerHTML = `
-      <div class="task-header">
-        ${ICONS[taskData.status] || ICONS.pending}
-        <div class="task-info">
-          <div class="task-name">${escapeHtml(taskData.name)}</div>
-          <div class="task-status-text">${stageName ? escapeHtml(stageName) + ' · ' : ''}${statusText}</div>
-        </div>
-      </div>
-      <div class="progress-container">
-        <div class="progress-bar ${progressClass}" style="width: ${taskData.totalProgress}%"></div>
-      </div>
-      <div class="task-stages">
-        ${renderStages(taskData)}
-      </div>
-    `;
-
-    card.addEventListener('click', () => {
-      card.classList.toggle('expanded');
-    });
+    // Update existing card, preserving expanded state
+    updateCardContent(card, taskData);
   } else {
     // Create new card
     const newCard = createTaskCard(taskData);

@@ -194,6 +194,10 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager, ta
         });
         // 自动开始处理队列
         taskManager.processNext();
+        // 自动打开任务窗口
+        if (windowManager && typeof windowManager.showTaskWindow === 'function') {
+          windowManager.showTaskWindow();
+        }
       }
 
       audioChunks = [];

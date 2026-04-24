@@ -145,12 +145,32 @@ class RecordingSummaryTask extends Task {
 
       this._saveTranscriptionResults(mergedSegments);
 
+      // 阶段2完成后，弹出逐字稿（用默认应用打开 MD 文件）
+      this._openTranscriptForDoctor();
+
       this.updateProgress(100);
       this.completeStage();
 
     } catch (err) {
       throw new Error(`听写失败: ${err.message}`);
     }
+  }
+
+  /**
+   * 美化说话人标签
+   * @param {string} speaker - 原始说话人 ID（如 spk_0, spk_1）
+   * @returns {string} 美化后的标签（如 说话人A, 说话人B）
+   */
+  _beautifySpeaker(speaker) {
+    if (!speaker) return '未知';
+    const match = speaker.match(/spk_(\d+)/);
+    if (match) {
+      const index = parseInt(match[1], 10);
+      // 0 → A, 1 → B, 2 → C...
+      const letter = String.fromCharCode(65 + index);
+      return `说话人${letter}`;
+    }
+    return speaker;
   }
 
   /**
@@ -182,7 +202,11 @@ class RecordingSummaryTask extends Task {
     // 添加最后一个片段
     merged.push(current);
 
-    return merged;
+    // 美化说话人标签
+    return merged.map(s => ({
+      ...s,
+      speaker: this._beautifySpeaker(s.speaker),
+    }));
   }
 
   /**
@@ -259,6 +283,30 @@ class RecordingSummaryTask extends Task {
     }
 
     return lines.join('\n');
+  }
+
+  /**
+   * 弹出逐字稿（用默认应用打开 MD 文件）
+   * 给医生展示转录结果
+   */
+  _openTranscriptForDoctor() {
+    const { shell } = require('electron');
+    const path = require('path');
+
+    // 获取 MD 文件路径（与 _saveTranscriptionResults 中的逻辑一致）
+    const audioBaseName = path.basename(this.audioPath, path.extname(this.audioPath));
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const fileName = `${audioBaseName}_${timestamp}`;
+    const markdownPath = this.outputPaths.markdown || require('electron').app.getPath('documents');
+    const mdFilePath = path.join(markdownPath, `${fileName}.md`);
+
+    console.log(`[RecordingSummaryTask] Opening transcript for doctor: ${mdFilePath}`);
+
+    try {
+      shell.openPath(mdFilePath);
+    } catch (err) {
+      console.error('[RecordingSummaryTask] Failed to open transcript:', err);
+    }
   }
 
   /**
