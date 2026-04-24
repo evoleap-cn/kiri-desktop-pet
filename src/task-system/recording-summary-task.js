@@ -1,8 +1,8 @@
 /**
  * RecordingSummaryTask - 录音纪要任务
- * 
+ *
  * 录音完成后自动触发的 AI 处理任务，包含多个阶段：
- * 1. 启动AI感知引擎 (10%)
+ * 1. 连接ASR引擎 (10%)
  * 2. 加载录音数据 (15%)
  * 3. Kiri正在听写... (35%)
  * 4. Kiri正在为逐字稿脱敏 (15%) - 暂时跳过
@@ -10,7 +10,7 @@
  */
 
 const { Task, TASK_STATUS, STAGE_STATUS } = require('./task');
-const { WhisperXClient } = require('./whisperx-client');
+const { ISIAsrClient } = require('./isi-asr-client');
 
 class RecordingSummaryTask extends Task {
   /**
@@ -22,13 +22,13 @@ class RecordingSummaryTask extends Task {
 
     this.audioPath = audioPath;
     this.outputPaths = options.outputPaths || {};
-    this.whisperXClient = options.whisperXClient || new WhisperXClient(options.whisperX || {});
+    this.isiClient = options.isiClient || new ISIAsrClient(options.isi || {});
     this.result = null; // 存储最终结果
 
     // 定义任务阶段
-    this.addStage('启动AI感知引擎', 10);    // 阶段0
-    this.addStage('加载录音数据', 15);       // 阶段1
-    this.addStage('Kiri正在听写...', 35);    // 阶段2
+    this.addStage('连接ASR引擎', 10);         // 阶段0
+    this.addStage('加载录音数据', 15);        // 阶段1
+    this.addStage('Kiri正在听写...', 35);     // 阶段2
     this.addStage('Kiri正在为逐字稿脱敏', 15); // 阶段3 - 暂时跳过
     this.addStage('Kiri正在总结内容', 25);    // 阶段4 - 暂时跳过
   }
@@ -74,33 +74,28 @@ class RecordingSummaryTask extends Task {
   }
 
   /**
-   * 阶段0: 启动AI感知引擎
-   * 加载 WhisperX 转录模型和说话人分离模型
+   * 阶段0: 连接ASR引擎
+   * 验证 ISI WebSocket 连接
    */
   async _loadAIEngine() {
     try {
-      // 更新进度模拟加载过程
+      // 模拟连接验证过程
       const progressInterval = setInterval(() => {
         const currentProgress = this.stages[0].progress;
         if (currentProgress < 90) {
-          this.updateProgress(currentProgress + 10);
+          this.updateProgress(currentProgress + 20);
         }
-      }, 200);
+      }, 100);
 
-      // 加载转录模型
-      await this.whisperXClient.loadTranscriptionModel();
-      this.updateProgress(50);
-
-      // 加载说话人分离模型
-      await this.whisperXClient.loadDiarizationModel();
-      this.updateProgress(90);
+      // ISI 协议无需显式模型加载，连接即可
+      await this._delay(300);
 
       clearInterval(progressInterval);
       this.updateProgress(100);
       this.completeStage();
 
     } catch (err) {
-      throw new Error(`AI引擎启动失败: ${err.message}`);
+      throw new Error(`ASR引擎连接失败: ${err.message}`);
     }
   }
 
@@ -133,13 +128,13 @@ class RecordingSummaryTask extends Task {
 
   /**
    * 阶段2: 听写（流式转录）
-   * 调用 WhisperX 流式转录接口，实时获取识别结果
+   * 调用 ISI ASR WebSocket 接口，实时获取识别结果
    */
   async _transcribe() {
     try {
       const allSegments = [];
 
-      await this.whisperXClient.transcribeStream(this.audioPath, {
+      await this.isiClient.transcribe(this.audioPath, {
         onSegment: (segment) => {
           allSegments.push(segment);
           // 流式输出片段时可以通知 UI

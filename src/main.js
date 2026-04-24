@@ -247,6 +247,7 @@ function registerIpcHandlers() {
         url: prefs?.cloudUrl || "https://kirilab.evolutionleap.cn:8002/expert",
       },
       paths: {
+        isiWsUrl: prefs?.isiWsUrl || "ws://192.168.1.66:8500",
         recording: prefs?.recordingSavePath || "",
         json: prefs?.jsonOutputPath || "",
         markdown: prefs?.markdownOutputPath || "",
@@ -274,6 +275,7 @@ function registerIpcHandlers() {
         recordingSavePath: settings.paths?.recording,
         jsonOutputPath: settings.paths?.json,
         markdownOutputPath: settings.paths?.markdown,
+        isiWsUrl: settings.paths?.isiWsUrl,
         autostart: settings.general?.autostart,
         rememberPosition: settings.general?.rememberPosition,
       };
