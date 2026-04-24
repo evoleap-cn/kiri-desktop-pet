@@ -52,8 +52,8 @@ class ISIAsrClient {
       jobStatus = await this.pollJobStatus(jobId);
 
       if (onProgress && jobStatus.status === 'processing') {
-        // 将 0-100 的进度映射到 80-95（预留 20% 给提交和取结果）
-        onProgress(80 + (jobStatus.progress || 0) * 0.15);
+        // 报告阶段内部进度（0-100）
+        onProgress(jobStatus.progress || 0);
       }
 
       if (jobStatus.status === 'failed') {
@@ -64,7 +64,6 @@ class ISIAsrClient {
     console.log('[ISIAsr] Job completed, status:', jobStatus.status);
 
     // 第三步：获取结果
-    if (onProgress) onProgress(98);
     const result = await this.getJobResult(jobId);
 
     // 格式化 segments
