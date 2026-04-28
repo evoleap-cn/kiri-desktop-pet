@@ -470,6 +470,13 @@ const asrManager = createAsrManager({
   injectText,
   caretTracker,
   stateManager,
+  getSettings: () => {
+    const prefs = loadPrefs() || {};
+    return {
+      asrServerUrl: prefs.asrServerUrl,
+      asrHotkey: prefs.asrHotkey,
+    };
+  },
 });
 
 // ─── Business Logic Handlers ─────────────────────────────────────────────────

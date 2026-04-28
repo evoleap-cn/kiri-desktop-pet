@@ -1,17 +1,29 @@
 const WebSocket = require("ws");
 const { globalShortcut } = require("electron");
 
-const ASR_CONFIG = {
-  serverUrl: process.env.ASR_SERVER_URL || "ws://192.168.1.66:8000/ws/v1/asr",
-  hotkey: "F9",
-  sampleRate: 16000,
-  heartbeatInterval: 30000,
-  reconnectDelay: 3000,
-};
+function createAsrManager({ getWin, windowManager, injectText, caretTracker, stateManager, getSettings }) {
+  // 动态获取 ASR 配置，支持运行时更新
+  function getAsrConfig() {
+    const settings = getSettings ? getSettings() : {};
+    let serverUrl = process.env.ASR_SERVER_URL || settings.asrServerUrl || "ws://192.168.1.66:8000/ws/v1/asr";
+    
+    // 确保 URL 包含完整路径
+    if (!serverUrl.includes('/ws/')) {
+      const baseUrl = serverUrl.replace(/\/+$/, '');
+      serverUrl = `${baseUrl}/ws/v1/asr`;
+    }
+    
+    return {
+      serverUrl,
+      hotkey: settings.asrHotkey || "F9",
+      sampleRate: 16000,
+      heartbeatInterval: 30000,
+      reconnectDelay: 3000,
+    };
+  }
 
-const MAX_RECONNECT_ATTEMPTS = 10;
+  const MAX_RECONNECT_ATTEMPTS = 10;
 
-function createAsrManager({ getWin, windowManager, injectText, caretTracker, stateManager }) {
   let asrWs = null;
   let isRecording = false;
   let heartbeatTimer = null;
@@ -34,11 +46,12 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker, sta
 
   function startHeartbeat() {
     stopHeartbeat();
+    const config = getAsrConfig();
     heartbeatTimer = setInterval(() => {
       if (asrWs && asrWs.readyState === WebSocket.OPEN) {
         asrWs.ping();
       }
-    }, ASR_CONFIG.heartbeatInterval);
+    }, config.heartbeatInterval);
   }
 
   function stopHeartbeat() {
@@ -67,13 +80,15 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker, sta
   }
 
   function initAsrConnection() {
+    const config = getAsrConfig();
+    
     if (asrWs && (asrWs.readyState === WebSocket.CONNECTING || asrWs.readyState === WebSocket.OPEN)) {
       console.log("[ASR] Connection already exists");
       return;
     }
 
-    console.log(`[ASR] Connecting to ${ASR_CONFIG.serverUrl}...`);
-    asrWs = new WebSocket(ASR_CONFIG.serverUrl);
+    console.log(`[ASR] Connecting to ${config.serverUrl}...`);
+    asrWs = new WebSocket(config.serverUrl);
 
     asrWs.on("open", () => {
       console.log("[ASR] WebSocket connected");
@@ -87,7 +102,7 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker, sta
         },
         payload: {
           format: "pcm",
-          sample_rate: ASR_CONFIG.sampleRate,
+          sample_rate: config.sampleRate,
           enable_intermediate_result: true,
           enable_punctuation_prediction: true,
           enable_inverse_text_normalization: true,
@@ -179,8 +194,10 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker, sta
           }
 
         } else if (name === "TaskFailed") {
-          const errorMsg = msg.payload?.status_text || "ASR task failed";
-          console.error("[ASR] Task failed:", errorMsg);
+          const errorMsg = msg.payload?.status_text || msg.header?.status_message || "ASR task failed";
+          const errorCode = msg.payload?.status_code || msg.header?.status_code || "unknown";
+          console.error("[ASR] Task failed:", errorMsg, "Error code:", errorCode);
+          console.error("[ASR] Full error message:", JSON.stringify(msg, null, 2));
           notifyRenderer("asr:error", errorMsg);
 
         } else {
@@ -206,11 +223,12 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker, sta
 
       if (isRecording && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
+        const config = getAsrConfig();
         console.log(`[ASR] Reconnecting... attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
         notifyRenderer("asr:status", `正在重连 (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
         reconnectTimer = setTimeout(() => {
           initAsrConnection();
-        }, ASR_CONFIG.reconnectDelay);
+        }, config.reconnectDelay);
       }
     });
   }
@@ -246,20 +264,50 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker, sta
 
   function sendAudioChunk(buffer) {
     if (asrWs && asrWs.readyState === WebSocket.OPEN) {
-      const bufferToSend = Buffer.from(new Uint8Array(buffer.buffer));
+      let bufferToSend;
+      
+      // 处理不同类型的 buffer
+      if (buffer instanceof Int16Array) {
+        // Int16Array 直接转为 Buffer
+        bufferToSend = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      } else if (buffer instanceof ArrayBuffer) {
+        // ArrayBuffer 转为 Int16Array 再转为 Buffer
+        const int16 = new Int16Array(buffer);
+        bufferToSend = Buffer.from(int16.buffer, int16.byteOffset, int16.byteLength);
+      } else if (Buffer.isBuffer(buffer)) {
+        bufferToSend = buffer;
+      } else {
+        // 其他类型（如普通对象）尝试转换
+        console.warn(`[ASR] Unexpected buffer type: ${typeof buffer}, converting...`);
+        const int16 = new Int16Array(Object.values(buffer));
+        bufferToSend = Buffer.from(int16.buffer, int16.byteOffset, int16.byteLength);
+      }
+      
+      console.log(`[ASR] Sending audio chunk: ${bufferToSend.length} bytes`);
       asrWs.send(bufferToSend, { binary: true });
     } else if (asrWs && asrWs.readyState === WebSocket.CONNECTING) {
-      const bufferToQueue = Buffer.from(new Uint8Array(buffer.buffer));
+      let bufferToQueue;
+      if (buffer instanceof Int16Array) {
+        bufferToQueue = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      } else if (buffer instanceof ArrayBuffer) {
+        const int16 = new Int16Array(buffer);
+        bufferToQueue = Buffer.from(int16.buffer, int16.byteOffset, int16.byteLength);
+      } else {
+        bufferToQueue = Buffer.from(buffer);
+      }
       audioBufferQueue.push(bufferToQueue);
       console.log(`[ASR] Queuing audio chunk, queue size: ${audioBufferQueue.length}`);
+    } else {
+      console.warn('[ASR] Cannot send audio chunk - WebSocket not connected');
     }
   }
 
   // ─── Hotkey ──────────────────────────────────────────────────────────────────
 
   function registerHotkey() {
-    const ret = globalShortcut.register(ASR_CONFIG.hotkey, () => {
-      console.log(`[ASR] Hotkey ${ASR_CONFIG.hotkey} pressed`);
+    const config = getAsrConfig();
+    const ret = globalShortcut.register(config.hotkey, () => {
+      console.log(`[ASR] Hotkey ${config.hotkey} pressed`);
       
       // Check if recording summary is active - forbid transition
       if (stateManager && stateManager.isRecordingSummary()) {
@@ -335,9 +383,9 @@ function createAsrManager({ getWin, windowManager, injectText, caretTracker, sta
     });
 
     if (!ret) {
-      console.error(`[ASR] Failed to register hotkey: ${ASR_CONFIG.hotkey}`);
+      console.error(`[ASR] Failed to register hotkey: ${config.hotkey}`);
     } else {
-      console.log(`[ASR] Hotkey ${ASR_CONFIG.hotkey} registered`);
+      console.log(`[ASR] Hotkey ${config.hotkey} registered`);
     }
   }
 
