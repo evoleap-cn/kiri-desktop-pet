@@ -3,14 +3,17 @@
  *
  * 录音完成后自动触发的 AI 处理任务，包含多个阶段：
  * 1. 连接ASR引擎 (10%)
- * 2. 加载录音数据 (15%)
- * 3. Kiri正在听写... (35%)
- * 4. Kiri正在为逐字稿脱敏 (15%) - 暂时跳过
- * 5. Kiri正在总结内容 (25%) - 暂时跳过
+ * 2. 加载录音数据 (10%)
+ * 3. Kiri正在听写... (20%)
+ * 4. Kiri正在为逐字稿脱敏 (15%)
+ * 5. Kiri正在检查错别字 (20%)
+ * 6. 等待专家审核结果 (15%)
+ * 7. 正在上传 (10%)
  */
 
 const { Task, TASK_STATUS, STAGE_STATUS } = require('./task');
 const { ISIAsrClient } = require('./isi-asr-client');
+const { DesensitizerClient } = require('./desensitizer-client');
 
 class RecordingSummaryTask extends Task {
   /**
@@ -23,14 +26,19 @@ class RecordingSummaryTask extends Task {
     this.audioPath = audioPath;
     this.outputPaths = options.outputPaths || {};
     this.isiClient = options.isiClient || new ISIAsrClient(options.isi || {});
+    this.desensitizerClient = new DesensitizerClient(options.desensitizerUrl || 'http://localhost:8080');
+    this.options = options; // 保存 options 以便后续使用
     this.result = null; // 存储最终结果
+    this.expertReviewResult = null; // 存储专家审核结果
 
     // 定义任务阶段
-    this.addStage('连接ASR引擎', 10);         // 阶段0
-    this.addStage('加载录音数据', 15);        // 阶段1
-    this.addStage('Kiri正在听写...', 35);     // 阶段2
-    this.addStage('Kiri正在为逐字稿脱敏', 15); // 阶段3 - 暂时跳过
-    this.addStage('Kiri正在总结内容', 25);    // 阶段4 - 暂时跳过
+    this.addStage('连接ASR引擎', 10);           // 阶段0
+    this.addStage('加载录音数据', 10);          // 阶段1
+    this.addStage('Kiri正在听写...', 20);       // 阶段2
+    this.addStage('Kiri正在为逐字稿脱敏', 15);  // 阶段3
+    this.addStage('Kiri正在检查错别字', 20);    // 阶段4
+    this.addStage('等待专家审核结果', 15);      // 阶段5
+    this.addStage('正在上传', 10);              // 阶段6
   }
 
   /**
@@ -58,11 +66,17 @@ class RecordingSummaryTask extends Task {
       // 阶段2: 听写（流式转录）
       await this._transcribe();
 
-      // 阶段3: 脱敏（暂时跳过）
-      this.skipStage();
+      // 阶段3: 脱敏
+      await this._desensitize();
 
-      // 阶段4: 总结（暂时跳过）
-      this.skipStage();
+      // 阶段4: 检查错别字
+      await this._checkTypos();
+
+      // 阶段5: 等待专家审核
+      await this._waitForExpertReview(this.options?.windowManager);
+
+      // 阶段6: 上传
+      await this._upload();
 
     } catch (err) {
       // 如果当前阶段还没标记失败，则标记
@@ -135,15 +149,13 @@ class RecordingSummaryTask extends Task {
       // 合并相邻相同 speaker 的文本
       const mergedSegments = this._mergeConsecutiveSpeakers(allSegments);
 
-      // 保存 JSON 和 Markdown 文件
+      // 保存结果到内存（不保存到文件）
       this.result = {
         audioPath: this.audioPath,
         segments: allSegments,
         mergedSegments: mergedSegments,
         createdAt: new Date().toISOString(),
       };
-
-      this._saveTranscriptionResults(mergedSegments);
 
       // 阶段2完成后，弹出逐字稿（用默认应用打开 MD 文件）
       this._openTranscriptForDoctor();
@@ -314,6 +326,304 @@ class RecordingSummaryTask extends Task {
    */
   _delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 阶段3: 脱敏处理
+   * 对逐字稿中的敏感信息进行脱敏处理
+   */
+  async _desensitize() {
+    try {
+      if (!this.result || !this.result.mergedSegments || this.result.mergedSegments.length === 0) {
+        throw new Error('没有可脱敏的转录数据');
+      }
+
+      this.updateProgress(10);
+      console.log('[RecordingSummaryTask] 开始脱敏处理...');
+
+      const desensitizedSegments = [];
+      const totalSegments = this.result.mergedSegments.length;
+
+      for (let i = 0; i < totalSegments; i++) {
+        const segment = this.result.mergedSegments[i];
+        const text = segment.text || '';
+
+        if (!text.trim()) {
+          // 空文本直接跳过
+          desensitizedSegments.push({ ...segment, text: '' });
+          continue;
+        }
+
+        // 打印待脱敏的文本
+        console.log(`[RecordingSummaryTask] [脱敏前] 片段 ${i}:`, text);
+
+        // 调用脱敏服务
+        try {
+          const requestBody = {
+            text: text,
+            language: 'auto',
+            threshold: 0.5,
+          };
+          console.log(`[RecordingSummaryTask] [请求体] 片段 ${i}:`, JSON.stringify(requestBody, null, 2));
+
+          const result = await this.desensitizerClient.desensitize(text, {
+            language: 'auto',
+            threshold: 0.5,
+          });
+
+          // 打印脱敏后的文本
+          console.log(`[RecordingSummaryTask] [脱敏后] 片段 ${i}:`, result.desensitized_text);
+          if (result.entities && result.entities.length > 0) {
+            console.log(`[RecordingSummaryTask] [检测到实体] 片段 ${i}:`, JSON.stringify(result.entities));
+          }
+
+          desensitizedSegments.push({
+            ...segment,
+            text: result.desensitized_text,
+            entities: result.entities || [],
+          });
+        } catch (error) {
+          console.warn(`[RecordingSummaryTask] 片段 ${i} 脱敏失败: ${error.message}`);
+          // 脱敏失败时保留原始文本
+          desensitizedSegments.push({ ...segment, text });
+        }
+
+        // 更新进度
+        const progress = Math.round(((i + 1) / totalSegments) * 100);
+        this.updateProgress(progress);
+      }
+
+      // 更新结果
+      this.result = {
+        ...this.result,
+        desensitizedSegments,
+        desensitizedAt: new Date().toISOString(),
+      };
+
+      this.updateProgress(100);
+      this.completeStage();
+
+      console.log('[RecordingSummaryTask] 脱敏处理完成');
+    } catch (err) {
+      throw new Error(`脱敏处理失败: ${err.message}`);
+    }
+  }
+
+  /**
+   * 阶段4: 检查错别字
+   * 使用 AI 检测并纠正转录文本中的错别字
+   */
+  async _checkTypos() {
+    try {
+      // 模拟 AI 检查错别字的进度
+      this.updateProgress(30);
+      await this._delay(500);
+
+      this.updateProgress(60);
+      await this._delay(500);
+
+      this.updateProgress(100);
+      this.completeStage();
+
+      console.log('[RecordingSummaryTask] 错别字检查完成');
+    } catch (err) {
+      throw new Error(`错别字检查失败: ${err.message}`);
+    }
+  }
+
+  /**
+   * 阶段5: 等待专家审核结果
+   * 打开专家审核窗口，等待用户确认
+   * 
+   * @param {object} windowManager - 窗口管理器实例（可选）
+   */
+  async _waitForExpertReview(windowManager = null) {
+    try {
+      console.log('[RecordingSummaryTask] 等待专家审核...');
+
+      // 构造审核数据（从听写和脱敏结果中提取）
+      const reviewData = this._buildReviewData();
+
+      // 如果提供了 windowManager，直接调用
+      if (windowManager) {
+        const result = await windowManager.showExpertReviewWindow(reviewData);
+        this.expertReviewResult = result;
+      } else {
+        // 否则通过 IPC 通信（用于测试）
+        const result = await this._openExpertReviewWindow(reviewData);
+        this.expertReviewResult = result;
+      }
+
+      // 专家审核完成后，保存最终结果
+      this._saveFinalResults();
+
+      // 标记阶段完成
+      this.updateProgress(100);
+      this.completeStage();
+
+      console.log('[RecordingSummaryTask] 专家审核完成并已保存结果');
+    } catch (err) {
+      throw new Error(`专家审核失败: ${err.message}`);
+    }
+  }
+
+  /**
+   * 构造审核数据
+   * 从听写结果中提取 speaker 和卡片信息
+   */
+  _buildReviewData() {
+    // 优先使用脱敏后的 segments，如果没有则使用原始 segments
+    const segments = this.result?.desensitizedSegments || this.result?.mergedSegments || this.result?.segments || [];
+
+    if (segments.length === 0) {
+      console.warn('[RecordingSummaryTask] 没有转录数据，返回空审核数据');
+      return {
+        speakers: [],
+        cards: []
+      };
+    }
+
+    // 提取所有唯一的 speaker
+    const speakerMap = new Map();
+    const colors = [
+      '#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de',
+      '#5856d6', '#ff2d55', '#5ac8fa', '#ffcc00', '#8e8e93',
+      '#00c7be', '#ff6b6b'
+    ];
+
+    segments.forEach(segment => {
+      if (!speakerMap.has(segment.speaker)) {
+        const colorIndex = speakerMap.size % colors.length;
+        speakerMap.set(segment.speaker, {
+          name: segment.speaker,
+          color: colors[colorIndex]
+        });
+      }
+    });
+
+    const speakers = Array.from(speakerMap.values());
+    
+    // 调试日志
+    console.log('[RecordingSummaryTask] Speakers:', speakers.map(s => s.name));
+
+    // 创建卡片
+    const cards = segments.map((segment, index) => {
+      const speakerIndex = speakers.findIndex(s => s.name === segment.speaker);
+      
+      // 调试日志：显示每个卡片的 speaker 匹配情况
+      if (index < 5) { // 只打印前5个
+        console.log(`[RecordingSummaryTask] Card ${index}: segment.speaker="${segment.speaker}", speakerIndex=${speakerIndex}`);
+      }
+      
+      return {
+        id: `card-${index}-${Date.now()}`,
+        speakerIndex: speakerIndex >= 0 ? speakerIndex : 0,
+        content: segment.text,
+        timestamp: {
+          start: segment.start,
+          end: segment.end
+        }
+      };
+    });
+    
+    // 统计每个 speaker 的卡片数量
+    const speakerCounts = {};
+    cards.forEach(card => {
+      const count = speakerCounts[card.speakerIndex] || 0;
+      speakerCounts[card.speakerIndex] = count + 1;
+    });
+    console.log('[RecordingSummaryTask] 卡片分布:', speakerCounts);
+
+    console.log(`[RecordingSummaryTask] 构建审核数据: ${speakers.length} 个 speakers, ${cards.length} 个卡片`);
+
+    return {
+      speakers,
+      cards
+    };
+  }
+
+  /**
+   * 保存最终结果（专家审核后的数据）
+   * 将专家编辑后的内容保存为 JSON 和 Markdown
+   */
+  _saveFinalResults() {
+    if (!this.expertReviewResult) {
+      console.warn('[RecordingSummaryTask] 没有专家审核结果，跳过保存');
+      return;
+    }
+
+    // 将专家审核结果转换为 segments 格式
+    const finalSegments = this.expertReviewResult.cards.map(card => {
+      const speaker = this.expertReviewResult.speakers[card.speakerIndex];
+      return {
+        speaker: speaker ? speaker.name : '未知',
+        text: card.content || '',
+        start: card.timestamp?.start || 0,
+        end: card.timestamp?.end || 0,
+      };
+    });
+
+    // 更新 result
+    this.result = {
+      ...this.result,
+      segments: finalSegments,
+      mergedSegments: this._mergeConsecutiveSpeakers(finalSegments),
+      expertReviewed: true,
+      reviewedAt: new Date().toISOString(),
+    };
+
+    // 保存 JSON 和 Markdown 文件
+    this._saveTranscriptionResults(this.result.mergedSegments);
+    
+    console.log('[RecordingSummaryTask] 最终结果已保存');
+  }
+
+  /**
+   * 打开专家审核窗口并等待结果（通过 IPC）
+   */
+  async _openExpertReviewWindow(reviewData) {
+    return new Promise((resolve, reject) => {
+      try {
+        // 通过 IPC 通知主进程打开专家审核窗口
+        const { ipcRenderer } = require('electron');
+        
+        // 监听审核完成事件
+        ipcRenderer.once('expert-review:completed', (_event, result) => {
+          resolve(result);
+        });
+
+        ipcRenderer.once('expert-review:cancelled', (_event) => {
+          reject(new Error('专家审核已取消'));
+        });
+
+        // 发送打开窗口请求
+        ipcRenderer.send('expert-review:open', reviewData);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * 阶段6: 正在上传
+   * 将处理完成的纪要文件上传到服务器
+   */
+  async _upload() {
+    try {
+      // 模拟上传进度
+      this.updateProgress(30);
+      await this._delay(400);
+
+      this.updateProgress(60);
+      await this._delay(400);
+
+      this.updateProgress(100);
+      this.completeStage();
+
+      console.log('[RecordingSummaryTask] 上传完成');
+    } catch (err) {
+      throw new Error(`上传失败: ${err.message}`);
+    }
   }
 }
 

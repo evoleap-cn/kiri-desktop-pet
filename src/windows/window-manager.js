@@ -30,7 +30,12 @@ function createWindowManager({ getWin, caretTracker }) {
   let settingsWin = null;
   let recordingWin = null;
   let taskWin = null;
+  let expertReviewWin = null;
   let lastLoggedCaretPos = null;
+
+  // 专家审核结果回调 Promise
+  let expertReviewResolver = null;
+  let expertReviewRejector = null;
 
   // ─── ASR Text Window ────────────────────────────────────────────────────────
 
@@ -565,6 +570,115 @@ function createWindowManager({ getWin, caretTracker }) {
     return taskWin;
   }
 
+  // ─── Expert Review Window ─────────────────────────────────────────────────────
+
+  const EXPERT_REVIEW_W = 600;
+  const EXPERT_REVIEW_H = 700;
+
+  function createExpertReviewWindow(reviewData) {
+    if (expertReviewWin && !expertReviewWin.isDestroyed()) {
+      expertReviewWin.webContents.send('expert-review:data', reviewData);
+      expertReviewWin.show();
+      expertReviewWin.focus();
+      return new Promise((resolve, reject) => {
+        resolve(expertReviewWin);
+      });
+    }
+
+    // 基于屏幕居中
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { workArea } = primaryDisplay;
+    const posX = workArea.x + Math.round((workArea.width - EXPERT_REVIEW_W) / 2);
+    const posY = workArea.y + Math.round((workArea.height - EXPERT_REVIEW_H) / 2);
+
+    expertReviewWin = new BrowserWindow({
+      width: EXPERT_REVIEW_W,
+      height: EXPERT_REVIEW_H,
+      x: posX,
+      y: posY,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: false,
+      resizable: true,
+      skipTaskbar: false,
+      hasShadow: true,
+      show: false,
+      focusable: true,
+      title: "专家审核",
+      webPreferences: {
+        preload: path.join(__dirname, "..", "expert-review-preload.js"),
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    expertReviewWin.loadFile(path.join(__dirname, "..", "expert-review-window.html"));
+
+    // 创建一个 Promise 用于等待审核完成
+    const reviewPromise = new Promise((resolve, reject) => {
+      expertReviewResolver = resolve;
+      expertReviewRejector = reject;
+    });
+
+    expertReviewWin.once("ready-to-show", () => {
+      // 发送审核数据
+      expertReviewWin.webContents.send('expert-review:data', reviewData);
+      expertReviewWin.show();
+    });
+
+    expertReviewWin.on("closed", () => {
+      // 如果窗口被意外关闭，reject Promise
+      if (expertReviewRejector) {
+        expertReviewRejector(new Error('审核窗口已关闭'));
+        expertReviewResolver = null;
+        expertReviewRejector = null;
+      }
+      expertReviewWin = null;
+    });
+
+    // 阻止窗口关闭，改为最小化
+    expertReviewWin.on("close", (e) => {
+      if (expertReviewWin && !expertReviewWin.isDestroyed()) {
+        e.preventDefault();
+        expertReviewWin.minimize();
+      }
+    });
+
+    return reviewPromise;
+  }
+
+  function showExpertReviewWindow(reviewData) {
+    return createExpertReviewWindow(reviewData);
+  }
+
+  function completeExpertReview(reviewData) {
+    if (expertReviewResolver) {
+      expertReviewResolver(reviewData);
+      expertReviewResolver = null;
+      expertReviewRejector = null;
+    }
+    destroyExpertReviewWindow();
+  }
+
+  function hideExpertReviewWindow() {
+    if (expertReviewWin && !expertReviewWin.isDestroyed()) {
+      expertReviewWin.hide();
+    }
+  }
+
+  function destroyExpertReviewWindow() {
+    if (expertReviewWin && !expertReviewWin.isDestroyed()) {
+      // 移除 close 事件监听器，允许真正关闭
+      expertReviewWin.removeAllListeners('close');
+      expertReviewWin.destroy();
+      expertReviewWin = null;
+    }
+  }
+
+  function getExpertReviewWin() {
+    return expertReviewWin;
+  }
+
   return {
     clampToScreen,
     createAsrTextWindow,
@@ -596,6 +710,12 @@ function createWindowManager({ getWin, caretTracker }) {
     hideTaskWindow,
     destroyTaskWindow,
     getTaskWin,
+    createExpertReviewWindow,
+    showExpertReviewWindow,
+    hideExpertReviewWindow,
+    destroyExpertReviewWindow,
+    completeExpertReview,
+    getExpertReviewWin,
   };
 }
 

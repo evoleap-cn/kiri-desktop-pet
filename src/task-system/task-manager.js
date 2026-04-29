@@ -84,7 +84,13 @@ function createTaskManager({ mainWindowGetter, windowManager }) {
    * @returns {RecordingSummaryTask}
    */
   function createRecordingSummaryTask(audioPath, options = {}) {
-    const task = new RecordingSummaryTask(audioPath, options);
+    // 将 windowManager 添加到 options 中
+    const taskOptions = {
+      ...options,
+      windowManager: windowManager
+    };
+    
+    const task = new RecordingSummaryTask(audioPath, taskOptions);
     mainQueue.append(task);
     return task;
   }

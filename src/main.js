@@ -248,6 +248,7 @@ function registerIpcHandlers() {
       },
       paths: {
         isiWsUrl: prefs?.isiWsUrl || "ws://192.168.1.66:8500",
+        desensitizerUrl: prefs?.desensitizerUrl || "http://localhost:8080",
         recording: prefs?.recordingSavePath || "",
         json: prefs?.jsonOutputPath || "",
         markdown: prefs?.markdownOutputPath || "",
@@ -276,6 +277,7 @@ function registerIpcHandlers() {
         jsonOutputPath: settings.paths?.json,
         markdownOutputPath: settings.paths?.markdown,
         isiWsUrl: settings.paths?.isiWsUrl,
+        desensitizerUrl: settings.paths?.desensitizerUrl,
         autostart: settings.general?.autostart,
         rememberPosition: settings.general?.rememberPosition,
       };
@@ -530,6 +532,41 @@ function registerTaskIpcHandlers() {
   ipcMain.on("task:request-list", (event) => {
     const taskList = taskManager.getTaskList();
     event.sender.send('task:list-update', taskList);
+  });
+
+  // ─── Expert Review Window IPC ─────────────────────────────────────────
+
+  // Open expert review window
+  ipcMain.on("expert-review:open", (event, reviewData) => {
+    windowManager.showExpertReviewWindow(reviewData).catch(err => {
+      console.error('[Main] Failed to show expert review window:', err);
+      event.sender.send('expert-review:cancelled');
+    });
+  });
+
+  // Minimize expert review window
+  ipcMain.on("expert-review:minimize", () => {
+    const reviewWin = windowManager.getExpertReviewWin();
+    if (reviewWin && !reviewWin.isDestroyed()) {
+      reviewWin.minimize();
+    }
+  });
+
+  // Complete expert review
+  ipcMain.handle("expert-review:complete", async (event, reviewData) => {
+    windowManager.completeExpertReview(reviewData);
+    return { success: true };
+  });
+
+  // Auto-save expert review data
+  ipcMain.on("expert-review:auto-save", (event, reviewData) => {
+    console.log('[Main] Expert review auto-saved:', reviewData);
+    // Here you could save to file or database
+  });
+
+  // Close expert review window
+  ipcMain.on("expert-review:close", () => {
+    windowManager.destroyExpertReviewWindow();
   });
 }
 

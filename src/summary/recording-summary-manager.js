@@ -48,6 +48,7 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager, ta
     const defaultDocs = require('electron').app.getPath('documents');
     return {
       isi: prefs.isiWsUrl || "ws://192.168.1.66:8500",
+      desensitizerUrl: prefs.desensitizerUrl || "http://localhost:8080",
       recording: prefs.recordingSavePath || defaultDocs,
       json: prefs.jsonOutputPath || defaultDocs,
       markdown: prefs.markdownOutputPath || defaultDocs,
@@ -191,6 +192,7 @@ function createRecordingSummaryManager({ getWin, windowManager, stateManager, ta
         taskManager.createRecordingSummaryTask(savedFilePath, {
           outputPaths,
           isi: { wsUrl: outputPaths.isi },
+          desensitizerUrl: outputPaths.desensitizerUrl,
         });
         // 自动开始处理队列
         taskManager.processNext();

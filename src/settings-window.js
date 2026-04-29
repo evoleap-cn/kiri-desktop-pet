@@ -72,6 +72,7 @@
       // 录音和输出路径设置
       if (settings.paths) {
         document.getElementById("isi-ws-url").value = settings.paths.isiWsUrl || "ws://192.168.1.66:8500";
+        document.getElementById("desensitizer-url").value = settings.paths.desensitizerUrl || "http://localhost:8080";
         document.getElementById("recording-save-path").value = settings.paths.recording || "";
         document.getElementById("json-output-path").value = settings.paths.json || "";
         document.getElementById("markdown-output-path").value = settings.paths.markdown || "";
@@ -298,6 +299,7 @@
         },
         paths: {
           isiWsUrl: document.getElementById("isi-ws-url").value,
+          desensitizerUrl: document.getElementById("desensitizer-url").value,
           recording: document.getElementById("recording-save-path").value,
           json: document.getElementById("json-output-path").value,
           markdown: document.getElementById("markdown-output-path").value,

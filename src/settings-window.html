@@ -21,7 +21,7 @@
       bottom: 0;
       background: #f6f6f8;
       border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.12);
       display: flex;
       flex-direction: column;
       animation: windowFadeIn 0.2s ease-out;
@@ -455,6 +455,14 @@
           <div class="form-group">
             <label class="form-label">ISI ASR WebSocket 地址</label>
             <input type="text" class="form-input" id="isi-ws-url" placeholder="ws://192.168.1.66:8500">
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">Local Desensitizer 服务</div>
+          <div class="form-group">
+            <label class="form-label">脱敏服务地址</label>
+            <input type="text" class="form-input" id="desensitizer-url" placeholder="http://localhost:8080">
           </div>
         </div>
 
