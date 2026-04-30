@@ -15,8 +15,10 @@ let nativeInjector = null;
 try {
   if (os.platform() === 'win32') {
     console.log('[TextInjector] Trying to load native injector using node-gyp-build...');
-    // node-gyp-build automatically searches prebuilds/ and build/ directories
-    nativeInjector = build(path.join(__dirname, '..', '..'));
+    // In production builds, __dirname points inside the ASAR archive.
+    // node-gyp-build needs the path to app.asar.unpacked where prebuilds/ lives.
+    const projectRoot = __dirname.replace(/(\\|\/)src(\\|\/)asr$/, '').replace('app.asar', 'app.asar.unpacked');
+    nativeInjector = build(projectRoot);
     console.log('[TextInjector] Native Windows injector loaded successfully');
   }
 } catch (err) {

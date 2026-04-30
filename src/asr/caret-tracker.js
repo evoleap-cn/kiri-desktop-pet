@@ -14,7 +14,10 @@ let nativeModule = null;
 try {
   if (os.platform() === 'win32') {
     console.log('[CaretTracker] Trying to load native caret tracker...');
-    nativeModule = build(path.join(__dirname, '..', '..'));
+    // In production builds, __dirname points inside the ASAR archive.
+    // node-gyp-build needs the path to app.asar.unpacked where prebuilds/ lives.
+    const projectRoot = __dirname.replace(/(\\|\/)src(\\|\/)asr$/, '').replace('app.asar', 'app.asar.unpacked');
+    nativeModule = build(projectRoot);
     console.log('[CaretTracker] Native caret tracker loaded successfully');
   }
 } catch (err) {
