@@ -64,6 +64,58 @@ class DesensitizerClient {
   }
 
   /**
+   * 批量脱敏多个片段
+   * 
+   * 将所有片段的文本用分隔符连接，一次性发送给脱敏服务
+   * 
+   * @param {object[]} segments - 片段数组，每个片段包含 { text, speaker, start, end }
+   * @param {object} options - 可选配置
+   * @returns {Promise<object>} 脱敏结果，包含 desensitizedText 和 segments 映射
+   */
+  async desensitizeSegments(segments, options = {}) {
+    if (!Array.isArray(segments) || segments.length === 0) {
+      throw new Error('输入片段数组为空');
+    }
+
+    const {
+      language = 'auto',
+      threshold = 0.5,
+    } = options;
+
+    // 使用特殊分隔符连接所有片段，格式：[index]text
+    const SEPARATOR = '\n---SEGMENT_BREAK---\n';
+    const combinedText = segments
+      .map((segment, index) => `[${index}]${segment.text || ''}`)
+      .join(SEPARATOR);
+
+    if (!combinedText.trim()) {
+      throw new Error('所有片段文本均为空');
+    }
+
+    const requestBody = {
+      text: combinedText,
+      language,
+      threshold,
+    };
+
+    console.log('[DesensitizerClient] 合并后的完整文本:');
+    console.log(combinedText);
+    console.log('[DesensitizerClient] 请求体:', JSON.stringify(requestBody, null, 2));
+
+    try {
+      const response = await this._post('/desensitize', requestBody);
+      
+      console.log('[DesensitizerClient] 脱敏后的完整文本:');
+      console.log(response.desensitized_text);
+      console.log('[DesensitizerClient] 检测到实体:', JSON.stringify(response.entities, null, 2));
+
+      return response;
+    } catch (error) {
+      throw new Error(`脱敏服务调用失败: ${error.message}`);
+    }
+  }
+
+  /**
    * 批量脱敏文本
    * 
    * @param {string[]} texts - 待脱敏的文本数组

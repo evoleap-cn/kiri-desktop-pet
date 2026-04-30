@@ -340,56 +340,46 @@ class RecordingSummaryTask extends Task {
 
       this.updateProgress(10);
       console.log('[RecordingSummaryTask] 开始脱敏处理...');
+      console.log(`[RecordingSummaryTask] 共有 ${this.result.mergedSegments.length} 个片段`);
+
+      // 使用批量脱敏：将所有片段合并成一次请求
+      const response = await this.desensitizerClient.desensitizeSegments(
+        this.result.mergedSegments,
+        {
+          language: 'auto',
+          threshold: 0.5,
+        }
+      );
+
+      this.updateProgress(60);
+
+      // 解析脱敏后的文本，根据分隔符拆分回各个片段
+      const SEPARATOR = '\n---SEGMENT_BREAK---\n';
+      const desensitizedLines = response.desensitized_text.split(SEPARATOR);
 
       const desensitizedSegments = [];
       const totalSegments = this.result.mergedSegments.length;
 
       for (let i = 0; i < totalSegments; i++) {
-        const segment = this.result.mergedSegments[i];
-        const text = segment.text || '';
+        const originalSegment = this.result.mergedSegments[i];
+        let desensitizedText = originalSegment.text; // 默认保留原文
 
-        if (!text.trim()) {
-          // 空文本直接跳过
-          desensitizedSegments.push({ ...segment, text: '' });
-          continue;
+        // 查找对应的脱敏行
+        const line = desensitizedLines.find(l => l.startsWith(`[${i}]`));
+        if (line) {
+          // 移除 [index] 前缀
+          desensitizedText = line.replace(/^\[\d+\]/, '');
+        } else {
+          console.warn(`[RecordingSummaryTask] 片段 ${i} 未找到脱敏结果，保留原文`);
         }
 
-        // 打印待脱敏的文本
-        console.log(`[RecordingSummaryTask] [脱敏前] 片段 ${i}:`, text);
-
-        // 调用脱敏服务
-        try {
-          const requestBody = {
-            text: text,
-            language: 'auto',
-            threshold: 0.5,
-          };
-          console.log(`[RecordingSummaryTask] [请求体] 片段 ${i}:`, JSON.stringify(requestBody, null, 2));
-
-          const result = await this.desensitizerClient.desensitize(text, {
-            language: 'auto',
-            threshold: 0.5,
-          });
-
-          // 打印脱敏后的文本
-          console.log(`[RecordingSummaryTask] [脱敏后] 片段 ${i}:`, result.desensitized_text);
-          if (result.entities && result.entities.length > 0) {
-            console.log(`[RecordingSummaryTask] [检测到实体] 片段 ${i}:`, JSON.stringify(result.entities));
-          }
-
-          desensitizedSegments.push({
-            ...segment,
-            text: result.desensitized_text,
-            entities: result.entities || [],
-          });
-        } catch (error) {
-          console.warn(`[RecordingSummaryTask] 片段 ${i} 脱敏失败: ${error.message}`);
-          // 脱敏失败时保留原始文本
-          desensitizedSegments.push({ ...segment, text });
-        }
+        desensitizedSegments.push({
+          ...originalSegment,
+          text: desensitizedText,
+        });
 
         // 更新进度
-        const progress = Math.round(((i + 1) / totalSegments) * 100);
+        const progress = 60 + Math.round(((i + 1) / totalSegments) * 40);
         this.updateProgress(progress);
       }
 
