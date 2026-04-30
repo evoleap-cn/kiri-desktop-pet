@@ -2,40 +2,246 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self';">
-  <link rel="stylesheet" href="styles.css">
-  <title>Clawd</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self'">
+  <title>EvoLeap Pet</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #pet {
+      display: block;
+      width: 80px;
+      height: 80px;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+    #pet:active { cursor: grabbing; }
+    #pet svg {
+      display: block;
+      width: 80px;
+      height: 80px;
+      pointer-events: none;
+    }
+
+    /* ASR overlay — positioned below the SVG */
+    #asr-overlay {
+      position: fixed;
+      left: 0;
+      top: 128px;
+      width: 100vw;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 9999;
+    }
+    #asr-overlay.visible {
+      opacity: 1;
+    }
+    #asr-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 8px;
+      margin: 0 auto;
+      width: fit-content;
+    }
+    #asr-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff3b3b;
+      animation: asr-pulse 1s ease-in-out infinite;
+    }
+    @keyframes asr-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+    #asr-dot.done {
+      background: #34c759;
+      animation: none;
+    }
+    #asr-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 11px;
+      font-family: -apple-system, "Segoe UI", sans-serif;
+    }
+    #asr-error {
+      margin-top: 4px;
+      padding: 6px 10px;
+      background: rgba(255, 59, 59, 0.3);
+      border-radius: 8px;
+      color: #ff6b6b;
+      font-size: 11px;
+      font-family: -apple-system, "Segoe UI", sans-serif;
+      max-width: 260px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+      display: none;
+    }
+    #asr-status {
+      margin-top: 4px;
+      padding: 6px 10px;
+      background: rgba(59, 114, 255, 0.3);
+      border-radius: 8px;
+      color: #6bb5ff;
+      font-size: 11px;
+      font-family: -apple-system, "Segoe UI", sans-serif;
+      max-width: 260px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+      display: none;
+    }
+
+    /* Loading spinner overlaid on pet */
+    #asr-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 0, 0, 0.55);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    #asr-loading.hidden {
+      display: none;
+    }
+    #asr-loading .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #6bb5ff;
+      border-radius: 50%;
+      animation: asr-spin 0.8s linear infinite;
+    }
+    @keyframes asr-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #asr-loading .label {
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 8px;
+      font-family: -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.1;
+    }
+
+    /* Rainbow glow effect around pet during recording */
+    #pet-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #pet {
+      position: relative;
+      z-index: 1;
+    }
+    #pet-glow.recording::before,
+    #pet-glow.recording::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      animation: glow-spin 3s linear infinite;
+      filter: blur(8px);
+      opacity: 0.85;
+    }
+    #pet-glow.recording::after {
+      animation: glow-spin-reverse 4s linear infinite;
+      filter: blur(12px);
+      opacity: 0.6;
+    }
+    #pet-glow.recording {
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+    @keyframes glow-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes glow-spin-reverse {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.08); }
+    }
+    #pet-glow::before {
+      background: conic-gradient(
+        #ff0000,
+        #ff7f00,
+        #ffff00,
+        #00ff00,
+        #0000ff,
+        #4b0082,
+        #9400d3,
+        #ff0000
+      );
+    }
+    #pet-glow::after {
+      background: conic-gradient(
+        #ff0000,
+        #ffff00,
+        #00ff00,
+        #00ffff,
+        #0000ff,
+        #ff00ff,
+        #ff0000
+      );
+    }
+  </style>
 </head>
 <body>
-  <div id="pet-container">
-    <div id="pet-motion">
-      <div id="pet-flip">
-        <object
-          id="clawd"
-          class="clawd-object is-visible"
-          type="image/svg+xml"
-          data="../assets/svg/clawd-idle-follow.svg"
-        ></object>
-        <div id="pet-hat" aria-hidden="true" data-mood="idle">
-          <svg viewBox="0 0 32 20" preserveAspectRatio="xMidYMid meet">
-            <g class="hat-float">
-              <ellipse class="hat-shadow" cx="16" cy="15.5" rx="8.8" ry="1.8"/>
-              <path class="hat-beret" d="M9 11C9 7.5 11.9 5 16.1 5C20.6 5 23.3 7.8 23.3 11.2C23.3 12.1 22.9 12.8 22.1 13.2H10.5C9.5 12.7 9 12 9 11Z"/>
-              <path class="hat-brim" d="M6.5 12.9C6.5 11.8 7.4 10.9 8.5 10.9H24C25 10.9 25.8 11.8 25.8 12.9C25.8 14 25 14.8 24 14.8H8.5C7.4 14.8 6.5 14 6.5 12.9Z"/>
-              <rect class="hat-band" x="12.6" y="9.1" width="6.2" height="2.1" rx="1"/>
-              <circle class="hat-pom" cx="21.8" cy="6.2" r="1.7"/>
-              <path class="hat-bow" d="M10 8.7L8.4 7.7L6.8 8.7L8.4 9.7Z"/>
-              <path class="hat-bow-center" d="M8 8.4H8.9V9.1H8Z"/>
-              <g class="hat-sparkles">
-                <path d="M24.8 7.1H26.2M25.5 6.4V7.8"/>
-                <path d="M6.2 5.6H7.6M6.9 4.9V6.3"/>
-              </g>
-            </g>
-          </svg>
-        </div>
-      </div>
-    </div>
+  <div id="pet-glow">
+    <div id="pet"></div>
   </div>
-  <script src="renderer-rich.js"></script>
+
+  <div id="asr-loading" class="hidden">
+    <div class="spinner"></div>
+    <div class="label">Loading ASR...</div>
+  </div>
+
+  <div id="asr-overlay">
+    <div id="asr-status-bar">
+      <div id="asr-dot"></div>
+      <span id="asr-label">Recording...</span>
+    </div>
+    <div id="asr-status"></div>
+    <div id="asr-error"></div>
+  </div>
+
+  <script src="renderer.js"></script>
+  <script src="asr-renderer.js"></script>
 </body>
 </html>

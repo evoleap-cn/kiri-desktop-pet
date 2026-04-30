@@ -17,3 +17,9 @@ clawd-tank/
 
 # Debug logs
 logs/
+
+# Qwen Code temp files
+.qwen/*.orig
+
+# Native addon build output (ignore build/ but keep prebuilds/)
+build/

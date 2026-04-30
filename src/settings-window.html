@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>设置</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+    }
+    #settings-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #f6f6f8;
+      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      animation: windowFadeIn 0.2s ease-out;
+    }
+    @keyframes windowFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* 标题栏 */
+    #title-bar {
+      height: 40px;
+      background: #e8e8ec;
+      border-radius: 8px 8px 0 0;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      flex-shrink: 0;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    #title-bar .title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1d1d1f;
+      flex: 1;
+    }
+    .title-bar-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.12s;
+      -webkit-app-region: no-drag;
+      background: none;
+      border: none;
+    }
+    .title-bar-btn:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    .title-bar-btn svg {
+      width: 16px;
+      height: 16px;
+      color: #424245;
+    }
+
+    /* 侧边栏 */
+    #sidebar {
+      width: 160px;
+      background: #e8e8ec;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      border-radius: 0 0 0 8px;
+    }
+    .sidebar-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1d1d1f;
+      padding: 0 20px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      margin-bottom: 8px;
+    }
+    .sidebar-item {
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background 0.12s;
+      color: #424245;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-item:hover {
+      background: rgba(0,0,0,0.06);
+    }
+    .sidebar-item.active {
+      background: rgba(0,0,0,0.1);
+      color: #1d1d1f;
+      font-weight: 500;
+    }
+    .sidebar-item svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* 主内容区 */
+    #main-content {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      min-height: 0;
+      border-radius: 0 0 8px 0;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .section-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 20px;
+    }
+
+    /* 设置卡片 */
+    .settings-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .settings-card-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1d1d1f;
+      margin-bottom: 12px;
+    }
+
+    /* 表单元素 */
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: #424245;
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d1d6;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1d1d1f;
+      background: #f6f6f8;
+      outline: none;
+      transition: border-color 0.12s;
+      user-select: text;
+    }
+    .form-input:focus {
+      border-color: #007aff;
+    }
+    .form-input::placeholder {
+      color: #8e8e93;
+    }
+
+    /* 滑块 */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: #d1d1d6;
+      border-radius: 2px;
+      outline: none;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #007aff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .slider-value {
+      min-width: 40px;
+      text-align: right;
+      font-size: 14px;
+      color: #1d1d1f;
+      font-weight: 500;
+    }
+
+    /* 开关 */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .toggle-label {
+      font-size: 14px;
+      color: #1d1d1f;
+    }
+    .toggle {
+      position: relative;
+      width: 51px;
+      height: 31px;
+      background: #d1d1d6;
+      border-radius: 15.5px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle.active {
+      background: #34c759;
+    }
+    .toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 27px;
+      height: 27px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      transition: left 0.2s;
+    }
+    .toggle.active .toggle-knob {
+      left: 22px;
+    }
+
+    /* 按钮 */
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.12s;
+      outline: none;
+    }
+    .btn-primary {
+      background: #007aff;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    .btn-secondary {
+      background: #e8e8ec;
+      color: #1d1d1f;
+    }
+    .btn-secondary:hover {
+      background: #d1d1d6;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    /* 状态提示 */
+    .status-message {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 8px;
+      display: none;
+    }
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+
+    /* 快捷键输入 */
+    .hotkey-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hotkey-display {
+      padding: 8px 12px;
+      background: #f6f6f8;
+      border: 1px solid #d1d1d6;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1d1d1f;
+      min-width: 120px;
+      text-align: center;
+    }
+    .hotkey-recording {
+      border-color: #007aff;
+      background: #e7f3ff;
+    }
+
+    /* 滚动条 */
+    #main-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    #main-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #main-content::-webkit-scrollbar-thumb {
+      background: #d1d1d6;
+      border-radius: 4px;
+    }
+    #main-content::-webkit-scrollbar-thumb:hover {
+      background: #8e8e93;
+    }
+  </style>
+</head>
+<body>
+  <div id="settings-container">
+    <div id="title-bar">
+      <span class="title">设置</span>
+      <button class="title-bar-btn" id="minimize-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="title-bar-btn" id="close-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="content-area" style="display: flex; flex: 1; min-height: 0;">
+    <div id="sidebar">
+      <div class="sidebar-title">设置</div>
+      <div class="sidebar-item active" data-section="asr">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        <span>语音识别</span>
+      </div>
+      <div class="sidebar-item" data-section="pet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        <span>宠物外观</span>
+      </div>
+      <div class="sidebar-item" data-section="hotkey">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M7 16h10"/></svg>
+        <span>快捷键</span>
+      </div>
+      <div class="sidebar-item" data-section="cloud">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <span>云上纪要</span>
+      </div>
+      <div class="sidebar-item" data-section="recording">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        <span>录音纪要</span>
+      </div>
+      <div class="sidebar-item" data-section="general">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>通用</span>
+      </div>
+    </div>
+
+    <div id="main-content">
+      <!-- ASR 设置 -->
+      <div class="section active" id="section-asr">
+        <div class="section-title">语音识别设置</div>
+        <div class="settings-card">
+          <div class="settings-card-title">ASR 服务器配置</div>
+          <div class="form-group">
+            <label class="form-label">服务器地址</label>
+            <input type="text" class="form-input" id="asr-server-url" placeholder="ws://192.168.1.66:8000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">AppKey</label>
+            <input type="password" class="form-input" id="asr-appkey" placeholder="输入应用密钥">
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-test-asr">测试连接</button>
+          </div>
+          <div class="status-message" id="asr-status"></div>
+        </div>
+      </div>
+
+      <!-- 宠物外观设置 -->
+      <div class="section" id="section-pet">
+        <div class="section-title">宠物外观设置</div>
+        <div class="settings-card">
+          <div class="settings-card-title">尺寸与透明度</div>
+          <div class="form-group">
+            <label class="form-label">宠物尺寸</label>
+            <div class="slider-container">
+              <input type="range" class="slider" id="pet-size" min="80" max="240" value="160">
+              <span class="slider-value" id="pet-size-value">160px</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">透明度</label>
+            <div class="slider-container">
+              <input type="range" class="slider" id="pet-opacity" min="30" max="100" value="100">
+              <span class="slider-value" id="pet-opacity-value">100%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 快捷键设置 -->
+      <div class="section" id="section-hotkey">
+        <div class="section-title">快捷键设置</div>
+        <div class="settings-card">
+          <div class="settings-card-title">ASR 录音快捷键</div>
+          <div class="form-group">
+            <label class="form-label">热键</label>
+            <div class="hotkey-input">
+              <div class="hotkey-display" id="asr-hotkey-display">F9</div>
+              <button class="btn btn-secondary" id="btn-change-hotkey">更改</button>
+            </div>
+            <div class="status-message" id="hotkey-status">按 ESC 取消，按新快捷键确认</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 云上纪要设置 -->
+      <div class="section" id="section-cloud">
+        <div class="section-title">云上纪要设置</div>
+        <div class="settings-card">
+          <div class="settings-card-title">云上纪要链接</div>
+          <div class="form-group">
+            <label class="form-label">点击菜单"云上纪要"时打开的链接</label>
+            <input type="text" class="form-input" id="cloud-url" placeholder="https://kirilab.evolutionleap.cn:8002/expert">
+          </div>
+        </div>
+      </div>
+
+      <!-- 录音纪要设置 -->
+      <div class="section" id="section-recording">
+        <div class="section-title">录音纪要设置</div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">ISI ASR 引擎</div>
+          <div class="form-group">
+            <label class="form-label">ISI ASR WebSocket 地址</label>
+            <input type="text" class="form-input" id="isi-ws-url" placeholder="ws://192.168.1.66:8500">
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">Local Desensitizer 服务</div>
+          <div class="form-group">
+            <label class="form-label">脱敏服务地址</label>
+            <input type="text" class="form-input" id="desensitizer-url" placeholder="http://localhost:8080">
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">录音文件</div>
+          <div class="form-group">
+            <label class="form-label">录音音频保存目录</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="form-input" id="recording-save-path" placeholder="默认: 用户文档目录" style="flex: 1;">
+              <button class="btn btn-secondary" id="btn-browse-recording-path" style="white-space: nowrap;">浏览</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">转录结果</div>
+          <div class="form-group">
+            <label class="form-label">JSON 转录文件保存目录</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="form-input" id="json-output-path" placeholder="默认: 用户文档目录" style="flex: 1;">
+              <button class="btn btn-secondary" id="btn-browse-json-path" style="white-space: nowrap;">浏览</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">纪要文档</div>
+          <div class="form-group">
+            <label class="form-label">Markdown 纪要文件保存目录</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="form-input" id="markdown-output-path" placeholder="默认: 用户文档目录" style="flex: 1;">
+              <button class="btn btn-secondary" id="btn-browse-markdown-path" style="white-space: nowrap;">浏览</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 通用设置 -->
+      <div class="section" id="section-general">
+        <div class="section-title">通用设置</div>
+        <div class="settings-card">
+          <div class="settings-card-title">启动与行为</div>
+          <div class="toggle-container">
+            <span class="toggle-label">开机自启</span>
+            <div class="toggle" id="toggle-autostart">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+          <div class="toggle-container">
+            <span class="toggle-label">记住窗口位置</span>
+            <div class="toggle active" id="toggle-remember-position">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-card-title">偏好管理</div>
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="btn-export-prefs">导出设置</button>
+            <button class="btn btn-secondary" id="btn-import-prefs">导入设置</button>
+            <button class="btn btn-secondary" id="btn-reset-position">重置位置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <script src="settings-window.js"></script>
+</body>
+</html>
